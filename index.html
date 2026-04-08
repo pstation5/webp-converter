@@ -258,7 +258,7 @@ function toCanvas(file, w, h, fit) {
         const ctx = canvas.getContext('2d');
         if (fit === 'stretch') { ctx.drawImage(img,0,0,w,h); }
         else if (fit === 'cover') { const r=Math.max(w/sw,h/sh),nw=sw*r,nh=sh*r; ctx.drawImage(img,(w-nw)/2,(h-nh)/2,nw,nh); }
-        else { const r=Math.min(w/sw,h/sh),nw=sw*r,nh=sh*r; ctx.fillStyle='#000'; ctx.fillRect(0,0,w,h); ctx.drawImage(img,(w-nw)/2,(h-nh)/2,nw,nh); }
+        else { const r=Math.min(w/sw,h/sh),nw=sw*r,nh=sh*r; ctx.drawImage(img,(w-nw)/2,(h-nh)/2,nw,nh); }
       } else { canvas.width=sw; canvas.height=sh; canvas.getContext('2d').drawImage(img,0,0); }
       URL.revokeObjectURL(url); resolve(canvas);
     };
@@ -343,15 +343,37 @@ function setPreset(w,h) { document.getElementById('rw').value=w; document.getEle
 
 async function resizeAll() {
   const w=parseInt(document.getElementById('rw').value), h=parseInt(document.getElementById('rh').value);
-  const fit=document.getElementById('rfit').value, mime=document.getElementById('rfmt').value;
+  const fit=document.getElementById('rfit').value;
   const {files,results}=state.resize;
   for (let i=0;i<files.length;i++) {
     if (results[i]) continue;
-    const canvas=await toCanvas(files[i],w,h,fit);
-    const blob=await new Promise(r=>canvas.toBlob(r,mime,0.92));
-    results[i]={blob,size:blob.size,name:files[i].name.replace(/\.[^.]+$/,'')+'_'+w+'x'+h+extOf(mime)};
+    const f=files[i];
+    // Если PNG — проверяем прозрачность и сохраняем PNG
+    const hasTrans = f.type==='image/png' && await hasTransparency(f);
+    const mime = hasTrans ? 'image/png' : document.getElementById('rfmt').value;
+    const canvas=await toCanvas(f,w,h,fit);
+    const blob=await new Promise(r=>canvas.toBlob(r,mime, mime==='image/png'?undefined:0.92));
+    results[i]={blob,size:blob.size,name:f.name.replace(/\.[^.]+$/,'')+'_'+w+'x'+h+extOf(mime)};
     render('resize');
   }
+}
+
+function hasTransparency(file) {
+  return new Promise(resolve => {
+    const img=new Image(), url=URL.createObjectURL(file);
+    img.onload=()=>{
+      const c=document.createElement('canvas');
+      const size=Math.min(img.naturalWidth,img.naturalHeight,100);
+      c.width=size; c.height=size;
+      const ctx=c.getContext('2d');
+      ctx.drawImage(img,0,0,size,size);
+      const d=ctx.getImageData(0,0,size,size).data;
+      let transparent=false;
+      for(let i=3;i<d.length;i+=4){if(d[i]<255){transparent=true;break;}}
+      URL.revokeObjectURL(url); resolve(transparent);
+    };
+    img.src=url;
+  });
 }
 
 // --- КРОП ---
