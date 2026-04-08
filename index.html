@@ -167,6 +167,25 @@
   }
   .btn-del:hover { border-color: #ff5555; color: #ff5555; }
 
+  .mode-btn {
+    flex: 1;
+    padding: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    border: 1px solid #333;
+    border-radius: 10px;
+    background: none;
+    color: #888;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .mode-btn.active {
+    border-color: #4da6ff;
+    color: #4da6ff;
+    background: #1a2233;
+  }
+  .mode-btn:hover:not(.active) { border-color: #555; color: #ccc; }
+
     .btn-convert {
       width: 100%;
       padding: 14px;
@@ -217,10 +236,16 @@
   <p>Конвертируй изображения прямо на устройстве</p>
 </div>
 
+<div style="display:flex;gap:8px;margin-bottom:16px;">
+  <button class="mode-btn active" id="modeToWebp" onclick="setMode('webp')">Любой → WebP</button>
+  <button class="mode-btn" id="modeToPng" onclick="setMode('png')">WebP → PNG</button>
+  <button class="mode-btn" id="modeToJpg" onclick="setMode('jpg')">WebP → JPG</button>
+</div>
+
 <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
   <div class="drop-icon">📁</div>
   <div class="drop-title">Нажми или перетащи файлы</div>
-  <div class="drop-sub">JPG, PNG, GIF, AVIF, BMP — любой формат</div>
+  <div class="drop-sub" id="dropSub">JPG, PNG, GIF, AVIF, BMP — любой формат</div>
 </div>
 <input type="file" id="fileInput" accept="image/*" multiple>
 
@@ -235,7 +260,7 @@
 <div class="file-list" id="fileList"></div>
 
 <div id="actions" style="display:none">
-  <button class="btn-convert" id="convertBtn" onclick="convertAll()">Конвертировать все в WebP</button>
+  <button class="btn-convert" id="convertBtn" onclick="convertAll()">Конвертировать все</button>
   <button class="btn-all" id="dlAllBtn" style="display:none" onclick="downloadAll()">Скачать все файлы</button>
 </div>
 
@@ -245,6 +270,7 @@
 </div>
 
 <script>
+  let currentMode = 'webp';
   const files = [];
   const results = {};
 
@@ -257,6 +283,25 @@
   dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
   dropZone.addEventListener('drop', e => { e.preventDefault(); dropZone.classList.remove('drag-over'); handleFiles(e.dataTransfer.files); });
   document.getElementById('fileInput').onchange = e => handleFiles(e.target.files);
+
+  function setMode(mode) {
+    currentMode = mode;
+    document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('mode' + (mode === 'webp' ? 'ToWebp' : mode === 'png' ? 'ToPng' : 'ToJpg')).classList.add('active');
+    const inp = document.getElementById('fileInput');
+    if (mode === 'webp') {
+      inp.accept = 'image/*';
+      document.getElementById('dropSub').textContent = 'JPG, PNG, GIF, AVIF, BMP — любой формат';
+    } else {
+      inp.accept = 'image/webp';
+      document.getElementById('dropSub').textContent = 'Только WebP файлы';
+    }
+    // Очищаем список при смене режима
+    files.length = 0;
+    Object.keys(results).forEach(k => delete results[k]);
+    renderList();
+    document.getElementById('actions').style.display = 'none';
+  }
 
   function fmt(bytes) {
     if (bytes < 1024) return bytes + ' B';
@@ -295,9 +340,7 @@
           <div class="file-name">${f.name}</div>
           <div class="file-meta">
             ${fmt(f.size)}
-            ${res ? (res.original
-              ? `<span style="color:#f5a623">JPG лучше — оставлен оригинал</span>`
-              : `→ ${fmt(res.size)} <span class="saved">-${saved}%</span>`) : ''}
+            ${res ? `→ ${fmt(res.size)} <span class="saved">-${saved}%</span>` : ""}
           </div>
         </div>
         <span class="file-status ${res ? 'done' : ''}">${res ? '✓' : '...'}</span>
@@ -318,15 +361,18 @@
 
     for (let i = 0; i < files.length; i++) {
       if (results[i]) continue;
-      const blob = await toWebP(files[i], quality);
-      // Если WebP тяжелее оригинала — оставляем оригинал
-      if (blob.size >= files[i].size) {
-        const origBlob = files[i].slice(0, files[i].size, files[i].type);
-        const origExt = files[i].name.split('.').pop();
-        results[i] = { blob: files[i], size: files[i].size, name: files[i].name, original: true };
+      let blob, ext;
+      if (currentMode === 'webp') {
+        blob = await convert(files[i], 'image/webp', quality);
+        ext = '.webp';
+      } else if (currentMode === 'png') {
+        blob = await convert(files[i], 'image/png', 1);
+        ext = '.png';
       } else {
-        results[i] = { blob, size: blob.size, name: files[i].name.replace(/\.[^.]+$/, '') + '.webp' };
+        blob = await convert(files[i], 'image/jpeg', quality);
+        ext = '.jpg';
       }
+      results[i] = { blob, size: blob.size, name: files[i].name.replace(/\.[^.]+$/, '') + ext };
       renderList();
     }
 
@@ -334,7 +380,7 @@
     btn.textContent = 'Конвертировать ещё раз';
   }
 
-  function toWebP(file, quality) {
+  function convert(file, mimeType, quality) {
     return new Promise(resolve => {
       const img = new Image();
       const url = URL.createObjectURL(file);
@@ -343,7 +389,7 @@
         canvas.width = img.naturalWidth;
         canvas.height = img.naturalHeight;
         canvas.getContext('2d').drawImage(img, 0, 0);
-        canvas.toBlob(blob => { URL.revokeObjectURL(url); resolve(blob); }, 'image/webp', quality);
+        canvas.toBlob(blob => { URL.revokeObjectURL(url); resolve(blob); }, mimeType, quality);
       };
       img.src = url;
     });
