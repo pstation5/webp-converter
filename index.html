@@ -3,425 +3,465 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>WebP Конвертер</title>
+  <title>Image Tools</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      background: #0f0f0f;
-      color: #e0e0e0;
-      min-height: 100vh;
-      padding: 20px 16px 40px;
-    }
-
-    .header {
-      text-align: center;
-      margin-bottom: 28px;
-    }
-
-    .header h1 {
-      font-size: 26px;
-      font-weight: 700;
-      color: #fff;
-      margin-bottom: 6px;
-    }
-
-    .header p {
-      font-size: 13px;
-      color: #888;
-    }
-
-    .accent { color: #4da6ff; }
-
-    .drop-zone {
-      border: 2px dashed #333;
-      border-radius: 14px;
-      padding: 36px 20px;
-      text-align: center;
-      cursor: pointer;
-      transition: all 0.2s;
-      background: #1a1a1a;
-      margin-bottom: 20px;
-    }
-
-    .drop-zone:hover, .drop-zone.drag-over {
-      border-color: #4da6ff;
-      background: #1a2233;
-    }
-
-    .drop-icon { font-size: 36px; margin-bottom: 10px; }
-
-    .drop-title {
-      font-size: 15px;
-      font-weight: 600;
-      color: #fff;
-      margin-bottom: 4px;
-    }
-
-    .drop-sub { font-size: 12px; color: #666; }
-
-    .settings {
-      background: #1a1a1a;
-      border: 1px solid #2a2a2a;
-      border-radius: 12px;
-      padding: 16px;
-      margin-bottom: 20px;
-    }
-
-    .setting-row {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-
-    .setting-label {
-      font-size: 13px;
-      color: #888;
-      min-width: 70px;
-    }
-
-    input[type="range"] {
-      flex: 1;
-      accent-color: #4da6ff;
-      height: 4px;
-    }
-
-    .setting-value {
-      font-size: 13px;
-      font-weight: 600;
-      color: #fff;
-      min-width: 36px;
-      text-align: right;
-    }
-
-    .file-list {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      margin-bottom: 16px;
-    }
-
-    .file-item {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      background: #1a1a1a;
-      border: 1px solid #2a2a2a;
-      border-radius: 10px;
-      padding: 10px;
-    }
-
-    .file-thumb {
-      width: 44px;
-      height: 44px;
-      object-fit: cover;
-      border-radius: 6px;
-      flex-shrink: 0;
-      background: #2a2a2a;
-    }
-
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f0f0f; color: #e0e0e0; min-height: 100vh; padding: 16px; }
+    .header { text-align: center; margin-bottom: 20px; padding-top: 8px; }
+    .header h1 { font-size: 22px; font-weight: 700; color: #fff; margin-bottom: 4px; }
+    .header p { font-size: 12px; color: #555; }
+    .tabs { display: flex; gap: 6px; margin-bottom: 20px; background: #1a1a1a; border-radius: 12px; padding: 5px; }
+    .tab { flex: 1; padding: 9px 4px; font-size: 12px; font-weight: 600; border: none; border-radius: 8px; background: none; color: #666; cursor: pointer; transition: all 0.2s; text-align: center; }
+    .tab.active { background: #2a2a2a; color: #fff; }
+    .tab:hover:not(.active) { color: #aaa; }
+    .panel { display: none; }
+    .panel.active { display: block; }
+    .sub-tabs { display: flex; gap: 6px; margin-bottom: 16px; }
+    .sub-tab { flex: 1; padding: 8px; font-size: 12px; font-weight: 600; border: 1px solid #2a2a2a; border-radius: 8px; background: none; color: #666; cursor: pointer; transition: all 0.2s; }
+    .sub-tab.active { border-color: #4da6ff; color: #4da6ff; background: #1a2233; }
+    .drop-zone { border: 2px dashed #2a2a2a; border-radius: 12px; padding: 28px 16px; text-align: center; cursor: pointer; transition: all 0.2s; background: #1a1a1a; margin-bottom: 14px; }
+    .drop-zone:hover, .drop-zone.drag-over { border-color: #4da6ff; background: #1a2233; }
+    .drop-icon { font-size: 28px; margin-bottom: 8px; }
+    .drop-title { font-size: 14px; font-weight: 600; color: #fff; margin-bottom: 3px; }
+    .drop-sub { font-size: 11px; color: #555; }
+    .settings { background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 10px; padding: 14px; margin-bottom: 14px; }
+    .setting-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
+    .setting-row:last-child { margin-bottom: 0; }
+    .setting-label { font-size: 12px; color: #888; min-width: 80px; }
+    input[type="range"] { flex: 1; accent-color: #4da6ff; min-width: 100px; }
+    .setting-value { font-size: 12px; font-weight: 600; color: #fff; min-width: 40px; text-align: right; }
+    input[type="number"] { background: #2a2a2a; border: 1px solid #333; border-radius: 6px; color: #fff; padding: 6px 8px; font-size: 13px; width: 75px; text-align: center; }
+    select { background: #2a2a2a; border: 1px solid #333; border-radius: 6px; color: #fff; padding: 6px 8px; font-size: 12px; flex: 1; }
+    .file-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
+    .file-item { display: flex; align-items: center; gap: 10px; background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 10px; padding: 10px; }
+    .file-thumb { width: 40px; height: 40px; object-fit: cover; border-radius: 6px; flex-shrink: 0; background: #2a2a2a; }
     .file-info { flex: 1; min-width: 0; }
-
-    .file-name {
-      font-size: 13px;
-      font-weight: 600;
-      color: #fff;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      margin-bottom: 2px;
-    }
-
+    .file-name { font-size: 12px; font-weight: 600; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 2px; }
     .file-meta { font-size: 11px; color: #666; }
-    .file-meta .saved { color: #4da6ff; }
-
+    .saved { color: #4caf50; }
+    .bigger { color: #f5a623; }
     .file-status { font-size: 11px; color: #666; flex-shrink: 0; }
     .file-status.done { color: #4caf50; }
-
-    .btn-dl {
-      flex-shrink: 0;
-      background: #4da6ff;
-      color: #000;
-      border: none;
-      border-radius: 7px;
-      padding: 6px 12px;
-      font-size: 12px;
-      font-weight: 700;
-      cursor: pointer;
-      transition: opacity 0.2s;
-    }
-
-    .btn-dl:hover { opacity: 0.85; }
-
-  .btn-del {
-    flex-shrink: 0;
-    background: none;
-    color: #555;
-    border: 1px solid #333;
-    border-radius: 7px;
-    padding: 6px 10px;
-    font-size: 12px;
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-  .btn-del:hover { border-color: #ff5555; color: #ff5555; }
-
-  .mode-btn {
-    flex: 1;
-    padding: 10px;
-    font-size: 13px;
-    font-weight: 600;
-    border: 1px solid #333;
-    border-radius: 10px;
-    background: none;
-    color: #888;
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-  .mode-btn.active {
-    border-color: #4da6ff;
-    color: #4da6ff;
-    background: #1a2233;
-  }
-  .mode-btn:hover:not(.active) { border-color: #555; color: #ccc; }
-
-    .btn-convert {
-      width: 100%;
-      padding: 14px;
-      font-size: 15px;
-      font-weight: 700;
-      border: none;
-      border-radius: 12px;
-      background: #4da6ff;
-      color: #000;
-      cursor: pointer;
-      transition: opacity 0.2s;
-      margin-bottom: 12px;
-    }
-
-    .btn-convert:hover { opacity: 0.85; }
-    .btn-convert:disabled { opacity: 0.4; cursor: default; }
-
-    .btn-all {
-      width: 100%;
-      padding: 12px;
-      font-size: 13px;
-      font-weight: 600;
-      border: 1px solid #333;
-      border-radius: 12px;
-      background: none;
-      color: #aaa;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-
-    .btn-all:hover { background: #1a1a1a; color: #fff; }
-
-    .privacy {
-      text-align: center;
-      font-size: 11px;
-      color: #555;
-      margin-top: 20px;
-      line-height: 1.6;
-    }
-
-    #fileInput { display: none; }
+    .btn-primary { width: 100%; padding: 13px; font-size: 14px; font-weight: 700; border: none; border-radius: 10px; background: #4da6ff; color: #000; cursor: pointer; transition: opacity 0.2s; margin-bottom: 8px; }
+    .btn-primary:hover { opacity: 0.85; }
+    .btn-primary:disabled { opacity: 0.4; cursor: default; }
+    .btn-secondary { width: 100%; padding: 10px; font-size: 12px; font-weight: 600; border: 1px solid #2a2a2a; border-radius: 10px; background: none; color: #888; cursor: pointer; transition: all 0.2s; margin-bottom: 6px; }
+    .btn-secondary:hover { background: #1a1a1a; color: #fff; }
+    .btn-sm { background: #4da6ff; color: #000; border: none; border-radius: 6px; padding: 5px 10px; font-size: 11px; font-weight: 700; cursor: pointer; flex-shrink: 0; }
+    .btn-sm:hover { opacity: 0.85; }
+    .btn-del { background: none; color: #444; border: 1px solid #2a2a2a; border-radius: 6px; padding: 5px 8px; font-size: 11px; cursor: pointer; flex-shrink: 0; }
+    .btn-del:hover { border-color: #ff5555; color: #ff5555; }
+    .presets { display: flex; gap: 6px; flex-wrap: wrap; }
+    .preset { padding: 5px 10px; font-size: 11px; font-weight: 600; border: 1px solid #2a2a2a; border-radius: 6px; background: none; color: #888; cursor: pointer; transition: all 0.2s; }
+    .preset:hover { border-color: #4da6ff; color: #4da6ff; }
+    .crop-wrap { position: relative; display: inline-block; max-width: 100%; margin-bottom: 14px; user-select: none; cursor: crosshair; }
+    .crop-wrap img { max-width: 100%; display: block; border-radius: 8px; pointer-events: none; }
+    .crop-sel { position: absolute; border: 2px solid #4da6ff; background: rgba(77,166,255,0.1); cursor: move; }
+    .crop-handle { position: absolute; width: 12px; height: 12px; background: #4da6ff; border-radius: 2px; }
+    .crop-handle.tl { top: -6px; left: -6px; cursor: nw-resize; }
+    .crop-handle.tr { top: -6px; right: -6px; cursor: ne-resize; }
+    .crop-handle.bl { bottom: -6px; left: -6px; cursor: sw-resize; }
+    .crop-handle.br { bottom: -6px; right: -6px; cursor: se-resize; }
+    .crop-info { font-size: 11px; color: #888; text-align: center; margin-bottom: 10px; }
+    .privacy { text-align: center; font-size: 11px; color: #333; margin-top: 16px; }
+    input[type="file"] { display: none; }
   </style>
 </head>
 <body>
 
 <div class="header">
-  <h1>🖼 <span class="accent">WebP</span> Конвертер</h1>
-  <p>Конвертируй изображения прямо на устройстве</p>
+  <h1>🛠 Image Tools</h1>
+  <p>Конвертер · Размер · Кроп · Сжатие</p>
 </div>
 
-<div style="display:flex;gap:8px;margin-bottom:16px;">
-  <button class="mode-btn active" id="modeToWebp" onclick="setMode('webp')">Любой → WebP</button>
-  <button class="mode-btn" id="modeToPng" onclick="setMode('png')">WebP → PNG</button>
-  <button class="mode-btn" id="modeToJpg" onclick="setMode('jpg')">WebP → JPG</button>
+<div class="tabs">
+  <button class="tab active" onclick="switchTab('convert')">Конвертер</button>
+  <button class="tab" onclick="switchTab('resize')">Размер</button>
+  <button class="tab" onclick="switchTab('crop')">Кроп</button>
+  <button class="tab" onclick="switchTab('compress')">Сжатие</button>
 </div>
 
-<div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
-  <div class="drop-icon">📁</div>
-  <div class="drop-title">Нажми или перетащи файлы</div>
-  <div class="drop-sub" id="dropSub">JPG, PNG, GIF, AVIF, BMP — любой формат</div>
-</div>
-<input type="file" id="fileInput" accept="image/*" multiple>
-
-<div class="settings">
-  <div class="setting-row">
-    <span class="setting-label">Качество</span>
-    <input type="range" id="quality" min="10" max="100" value="85" step="1">
-    <span class="setting-value" id="qualityOut">85%</span>
+<!-- КОНВЕРТЕР -->
+<div class="panel active" id="panel-convert">
+  <div class="sub-tabs">
+    <button class="sub-tab active" onclick="setConvertMode('webp')">→ WebP</button>
+    <button class="sub-tab" onclick="setConvertMode('png')">→ PNG</button>
+    <button class="sub-tab" onclick="setConvertMode('jpg')">→ JPG</button>
+  </div>
+  <div class="drop-zone" id="dz-convert">
+    <div class="drop-icon">🖼</div>
+    <div class="drop-title">Нажми или перетащи файлы</div>
+    <div class="drop-sub" id="convertSub">JPG, PNG, GIF — любой формат</div>
+  </div>
+  <input type="file" id="fi-convert" accept="image/*" multiple>
+  <div class="settings">
+    <div class="setting-row">
+      <span class="setting-label">Качество</span>
+      <input type="range" id="cq" min="10" max="100" value="85" oninput="document.getElementById('cqv').textContent=this.value+'%'">
+      <span class="setting-value" id="cqv">85%</span>
+    </div>
+  </div>
+  <div class="file-list" id="list-convert"></div>
+  <div id="act-convert" style="display:none">
+    <button class="btn-primary" id="btn-convert" onclick="convertAll()">Конвертировать все</button>
+    <button class="btn-secondary" id="dla-convert" style="display:none" onclick="dlAll('convert')">Скачать все</button>
   </div>
 </div>
 
-<div class="file-list" id="fileList"></div>
-
-<div id="actions" style="display:none">
-  <button class="btn-convert" id="convertBtn" onclick="convertAll()">Конвертировать все</button>
-  <button class="btn-all" id="dlAllBtn" style="display:none" onclick="downloadAll()">Скачать все файлы</button>
+<!-- РАЗМЕР -->
+<div class="panel" id="panel-resize">
+  <div class="drop-zone" id="dz-resize">
+    <div class="drop-icon">📐</div>
+    <div class="drop-title">Нажми или перетащи файлы</div>
+    <div class="drop-sub">Изменение размера изображений</div>
+  </div>
+  <input type="file" id="fi-resize" accept="image/*" multiple>
+  <div class="settings">
+    <div class="setting-row">
+      <span class="setting-label">Пресеты</span>
+      <div class="presets">
+        <button class="preset" onclick="setPreset(300,400)">Обложка</button>
+        <button class="preset" onclick="setPreset(1280,720)">Скриншот</button>
+        <button class="preset" onclick="setPreset(1920,1080)">Full HD</button>
+        <button class="preset" onclick="setPreset(800,800)">800×800</button>
+      </div>
+    </div>
+    <div class="setting-row">
+      <span class="setting-label">Размер</span>
+      <input type="number" id="rw" value="800" min="1" max="9999">
+      <span style="color:#555;padding:0 4px">×</span>
+      <input type="number" id="rh" value="600" min="1" max="9999">
+    </div>
+    <div class="setting-row">
+      <span class="setting-label">Режим</span>
+      <select id="rfit">
+        <option value="cover" selected>Заполнить (cover)</option>
+        <option value="contain">Вписать (contain)</option>
+        <option value="stretch">Растянуть</option>
+      </select>
+    </div>
+    <div class="setting-row">
+      <span class="setting-label">Формат</span>
+      <select id="rfmt">
+        <option value="image/webp">WebP</option>
+        <option value="image/jpeg">JPG</option>
+        <option value="image/png">PNG</option>
+      </select>
+    </div>
+  </div>
+  <div class="file-list" id="list-resize"></div>
+  <div id="act-resize" style="display:none">
+    <button class="btn-primary" onclick="resizeAll()">Изменить размер</button>
+    <button class="btn-secondary" id="dla-resize" style="display:none" onclick="dlAll('resize')">Скачать все</button>
+  </div>
 </div>
 
-<div class="privacy">
-  🔒 Файлы не загружаются на сервер<br>
-  Всё происходит прямо на твоём устройстве
+<!-- КРОП -->
+<div class="panel" id="panel-crop">
+  <div class="drop-zone" id="dz-crop">
+    <div class="drop-icon">✂️</div>
+    <div class="drop-title">Нажми или перетащи изображение</div>
+    <div class="drop-sub">Одно изображение для обрезки</div>
+  </div>
+  <input type="file" id="fi-crop" accept="image/*">
+  <div id="crop-editor" style="display:none">
+    <div class="crop-info" id="crop-info">Выдели область мышью</div>
+    <div class="crop-wrap" id="crop-wrap">
+      <img id="crop-img" alt="crop">
+      <div id="crop-sel" class="crop-sel" style="display:none">
+        <div class="crop-handle tl" data-h="tl"></div>
+        <div class="crop-handle tr" data-h="tr"></div>
+        <div class="crop-handle bl" data-h="bl"></div>
+        <div class="crop-handle br" data-h="br"></div>
+      </div>
+    </div>
+    <div class="settings">
+      <div class="setting-row">
+        <span class="setting-label">Формат</span>
+        <select id="crop-fmt">
+          <option value="image/webp">WebP</option>
+          <option value="image/jpeg">JPG</option>
+          <option value="image/png">PNG</option>
+        </select>
+      </div>
+    </div>
+    <button class="btn-primary" onclick="doCrop()">Обрезать и скачать</button>
+    <button class="btn-secondary" onclick="resetCrop()">Другое изображение</button>
+  </div>
 </div>
+
+<!-- СЖАТИЕ -->
+<div class="panel" id="panel-compress">
+  <div class="drop-zone" id="dz-compress">
+    <div class="drop-icon">⚡</div>
+    <div class="drop-title">Нажми или перетащи файлы</div>
+    <div class="drop-sub">Уменьшаем вес без смены формата</div>
+  </div>
+  <input type="file" id="fi-compress" accept="image/*" multiple>
+  <div class="settings">
+    <div class="setting-row">
+      <span class="setting-label">Сжатие</span>
+      <input type="range" id="sq" min="30" max="95" value="75" oninput="document.getElementById('sqv').textContent=this.value+'%'">
+      <span class="setting-value" id="sqv">75%</span>
+    </div>
+  </div>
+  <div class="file-list" id="list-compress"></div>
+  <div id="act-compress" style="display:none">
+    <button class="btn-primary" onclick="compressAll()">Сжать все</button>
+    <button class="btn-secondary" id="dla-compress" style="display:none" onclick="dlAll('compress')">Скачать все</button>
+  </div>
+</div>
+
+<div class="privacy">🔒 Файлы не покидают устройство</div>
 
 <script>
-  let currentMode = 'webp';
-  const files = [];
-  const results = {};
+const state = {
+  convert: { files: [], results: {} },
+  resize:  { files: [], results: {} },
+  compress:{ files: [], results: {} },
+};
 
-  const q = document.getElementById('quality');
-  const qOut = document.getElementById('qualityOut');
-  q.oninput = () => qOut.textContent = q.value + '%';
+let convertMode = 'webp';
 
-  const dropZone = document.getElementById('dropZone');
-  dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
-  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
-  dropZone.addEventListener('drop', e => { e.preventDefault(); dropZone.classList.remove('drag-over'); handleFiles(e.dataTransfer.files); });
-  document.getElementById('fileInput').onchange = e => handleFiles(e.target.files);
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', ['convert','resize','crop','compress'][i] === name));
+  document.querySelectorAll('.panel').forEach(p => p.classList.toggle('active', p.id === 'panel-'+name));
+}
 
-  function setMode(mode) {
-    currentMode = mode;
-    document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
-    document.getElementById('mode' + (mode === 'webp' ? 'ToWebp' : mode === 'png' ? 'ToPng' : 'ToJpg')).classList.add('active');
-    const inp = document.getElementById('fileInput');
-    if (mode === 'webp') {
-      inp.accept = 'image/*';
-      document.getElementById('dropSub').textContent = 'JPG, PNG, GIF, AVIF, BMP — любой формат';
-    } else {
-      inp.accept = 'image/webp';
-      document.getElementById('dropSub').textContent = 'Только WebP файлы';
-    }
-    // Очищаем список при смене режима
-    files.length = 0;
-    Object.keys(results).forEach(k => delete results[k]);
-    renderList();
-    document.getElementById('actions').style.display = 'none';
+function fmt(b) {
+  if (b < 1024) return b+' B';
+  if (b < 1048576) return (b/1024).toFixed(1)+' KB';
+  return (b/1048576).toFixed(1)+' MB';
+}
+
+function extOf(mime) {
+  return mime === 'image/webp' ? '.webp' : mime === 'image/jpeg' ? '.jpg' : '.png';
+}
+
+function dlBlob(blob, name) {
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; a.click();
+}
+
+function dlAll(ns) {
+  const res = state[ns].results;
+  Object.keys(res).forEach((k,i) => setTimeout(() => dlBlob(res[k].blob, res[k].name), i*300));
+}
+
+function toCanvas(file, w, h, fit) {
+  return new Promise(resolve => {
+    const img = new Image(), url = URL.createObjectURL(file);
+    img.onload = () => {
+      const sw = img.naturalWidth, sh = img.naturalHeight;
+      const canvas = document.createElement('canvas');
+      if (w && h) {
+        canvas.width = w; canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        if (fit === 'stretch') { ctx.drawImage(img,0,0,w,h); }
+        else if (fit === 'cover') { const r=Math.max(w/sw,h/sh),nw=sw*r,nh=sh*r; ctx.drawImage(img,(w-nw)/2,(h-nh)/2,nw,nh); }
+        else { const r=Math.min(w/sw,h/sh),nw=sw*r,nh=sh*r; ctx.fillStyle='#000'; ctx.fillRect(0,0,w,h); ctx.drawImage(img,(w-nw)/2,(h-nh)/2,nw,nh); }
+      } else { canvas.width=sw; canvas.height=sh; canvas.getContext('2d').drawImage(img,0,0); }
+      URL.revokeObjectURL(url); resolve(canvas);
+    };
+    img.src = url;
+  });
+}
+
+function handleFiles(fileList, ns) {
+  const {files, results} = state[ns];
+  for (const f of fileList) {
+    if (!f.type.startsWith('image/')) continue;
+    if (files.find(x => x.name===f.name && x.size===f.size)) continue;
+    files.push(f);
   }
+  render(ns);
+  document.getElementById('act-'+ns).style.display = files.length ? 'block' : 'none';
+}
 
-  function fmt(bytes) {
-    if (bytes < 1024) return bytes + ' B';
-    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
-    return (bytes / 1024 / 1024).toFixed(1) + ' MB';
-  }
+function removeFile(idx, ns) {
+  const {files, results} = state[ns];
+  files.splice(idx, 1);
+  const nr = {};
+  Object.keys(results).forEach(k => { const ki=parseInt(k); if(ki<idx) nr[ki]=results[k]; else if(ki>idx) nr[ki-1]=results[k]; });
+  Object.keys(results).forEach(k => delete results[k]); Object.assign(results, nr);
+  render(ns);
+  document.getElementById('act-'+ns).style.display = files.length ? 'block' : 'none';
+}
 
-  function handleFiles(fileList) {
-    for (const f of fileList) {
-      if (!f.type.startsWith('image/')) continue;
-      if (files.find(x => x.name === f.name && x.size === f.size)) continue;
-      files.push(f);
-    }
-    renderList();
-    document.getElementById('actions').style.display = files.length ? 'block' : 'none';
-  }
-
-  function renderList() {
-    const list = document.getElementById('fileList');
-    list.innerHTML = '';
-    let allDone = files.length > 0;
-
-    files.forEach((f, i) => {
-      const res = results[i];
-      if (!res) allDone = false;
-
-      const url = URL.createObjectURL(f);
-      const item = document.createElement('div');
-      item.className = 'file-item';
-
-      const saved = res ? Math.round((1 - res.size / f.size) * 100) : null;
-
-      item.innerHTML = `
-        <img src="${url}" class="file-thumb">
-        <div class="file-info">
-          <div class="file-name">${f.name}</div>
-          <div class="file-meta">
-            ${fmt(f.size)}
-            ${res ? `→ ${fmt(res.size)} <span class="saved">-${saved}%</span>` : ""}
-          </div>
-        </div>
-        <span class="file-status ${res ? 'done' : ''}">${res ? '✓' : '...'}</span>
-        ${res ? `<button class="btn-dl" onclick="download(${i})">↓</button>` : ''}
-        <button class="btn-del" onclick="removeFile(${i})" title="Удалить">✕</button>
-      `;
-      list.appendChild(item);
-    });
-
-    document.getElementById('dlAllBtn').style.display = allDone && files.length > 1 ? 'block' : 'none';
-  }
-
-  async function convertAll() {
-    const btn = document.getElementById('convertBtn');
-    btn.disabled = true;
-    btn.textContent = 'Конвертируем...';
-    const quality = parseInt(q.value) / 100;
-
-    for (let i = 0; i < files.length; i++) {
-      if (results[i]) continue;
-      let blob, ext;
-      if (currentMode === 'webp') {
-        blob = await convert(files[i], 'image/webp', quality);
-        ext = '.webp';
-      } else if (currentMode === 'png') {
-        blob = await convert(files[i], 'image/png', 1);
-        ext = '.png';
-      } else {
-        blob = await convert(files[i], 'image/jpeg', quality);
-        ext = '.jpg';
-      }
-      results[i] = { blob, size: blob.size, name: files[i].name.replace(/\.[^.]+$/, '') + ext };
-      renderList();
-    }
-
-    btn.disabled = false;
-    btn.textContent = 'Конвертировать ещё раз';
-  }
-
-  function convert(file, mimeType, quality) {
-    return new Promise(resolve => {
-      const img = new Image();
-      const url = URL.createObjectURL(file);
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        canvas.width = img.naturalWidth;
-        canvas.height = img.naturalHeight;
-        canvas.getContext('2d').drawImage(img, 0, 0);
-        canvas.toBlob(blob => { URL.revokeObjectURL(url); resolve(blob); }, mimeType, quality);
-      };
-      img.src = url;
-    });
-  }
-
-  function removeFile(idx) {
-    files.splice(idx, 1);
-    delete results[idx];
-    // Пересчитываем ключи results
-    const newResults = {};
-    Object.keys(results).forEach(k => {
-      const ki = parseInt(k);
-      if (ki > idx) newResults[ki - 1] = results[k];
-      else if (ki < idx) newResults[ki] = results[k];
-    });
-    Object.keys(results).forEach(k => delete results[k]);
-    Object.assign(results, newResults);
-    renderList();
-    document.getElementById('actions').style.display = files.length ? 'block' : 'none';
-  }
-
-  function download(i) {
+function render(ns) {
+  const {files, results} = state[ns];
+  const list = document.getElementById('list-'+ns);
+  list.innerHTML = '';
+  files.forEach((f,i) => {
     const res = results[i];
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(res.blob);
-    a.download = res.name;
-    a.click();
-  }
+    const saved = res ? Math.round((1-res.size/f.size)*100) : null;
+    const url = URL.createObjectURL(f);
+    const item = document.createElement('div'); item.className = 'file-item';
+    item.innerHTML = `<img src="${url}" class="file-thumb">
+      <div class="file-info">
+        <div class="file-name">${f.name}</div>
+        <div class="file-meta">${fmt(f.size)}${res?` → ${fmt(res.size)} <span class="${saved>0?'saved':'bigger'}">${saved>0?'-'+saved+'%':'+'+Math.abs(saved)+'%'}</span>`:''}</div>
+      </div>
+      <span class="file-status ${res?'done':''}">${res?'✓':'·'}</span>
+      ${res?`<button class="btn-sm" onclick="dlFile(${i},'${ns}')">↓</button>`:''}
+      <button class="btn-del" onclick="removeFile(${i},'${ns}')">✕</button>`;
+    list.appendChild(item);
+  });
+  const allDone = files.length>0 && Object.keys(results).length>=files.length;
+  const dlaBtn = document.getElementById('dla-'+ns);
+  if (dlaBtn) dlaBtn.style.display = allDone && files.length>1 ? 'block' : 'none';
+}
 
-  function downloadAll() {
-    Object.keys(results).forEach(i => setTimeout(() => download(i), i * 300));
+function dlFile(i, ns) { const r=state[ns].results[i]; if(r) dlBlob(r.blob, r.name); }
+
+// --- КОНВЕРТЕР ---
+function setConvertMode(m) {
+  convertMode = m;
+  document.querySelectorAll('#panel-convert .sub-tab').forEach((t,i) => t.classList.toggle('active',['webp','png','jpg'][i]===m));
+  document.getElementById('fi-convert').accept = m!=='webp' ? 'image/webp' : 'image/*';
+  document.getElementById('convertSub').textContent = m!=='webp' ? 'Только WebP файлы' : 'JPG, PNG, GIF — любой формат';
+  state.convert.files.length=0; Object.keys(state.convert.results).forEach(k=>delete state.convert.results[k]);
+  render('convert'); document.getElementById('act-convert').style.display='none';
+}
+
+async function convertAll() {
+  const btn=document.getElementById('btn-convert'); btn.disabled=true; btn.textContent='Конвертируем...';
+  const q=parseInt(document.getElementById('cq').value)/100;
+  const mime=convertMode==='webp'?'image/webp':convertMode==='png'?'image/png':'image/jpeg';
+  const {files,results}=state.convert;
+  for (let i=0;i<files.length;i++) {
+    if (results[i]) continue;
+    const canvas=await toCanvas(files[i],0,0,'');
+    const blob=await new Promise(r=>canvas.toBlob(r,mime,q));
+    results[i]={blob,size:blob.size,name:files[i].name.replace(/\.[^.]+$/,'')+extOf(mime)};
+    render('convert');
   }
+  btn.disabled=false; btn.textContent='Конвертировать ещё раз';
+}
+
+// --- РАЗМЕР ---
+function setPreset(w,h) { document.getElementById('rw').value=w; document.getElementById('rh').value=h; }
+
+async function resizeAll() {
+  const w=parseInt(document.getElementById('rw').value), h=parseInt(document.getElementById('rh').value);
+  const fit=document.getElementById('rfit').value, mime=document.getElementById('rfmt').value;
+  const {files,results}=state.resize;
+  for (let i=0;i<files.length;i++) {
+    if (results[i]) continue;
+    const canvas=await toCanvas(files[i],w,h,fit);
+    const blob=await new Promise(r=>canvas.toBlob(r,mime,0.92));
+    results[i]={blob,size:blob.size,name:files[i].name.replace(/\.[^.]+$/,'')+'_'+w+'x'+h+extOf(mime)};
+    render('resize');
+  }
+}
+
+// --- КРОП ---
+let cropFile=null, cropNatW=0, cropNatH=0;
+let cs={x:20,y:20,w:200,h:150}, dragging=null, ds=null;
+
+function loadCrop(file) {
+  cropFile=file;
+  const img=document.getElementById('crop-img');
+  img.onload=()=>{
+    cropNatW=img.naturalWidth; cropNatH=img.naturalHeight;
+    setTimeout(()=>{
+      const dw=img.offsetWidth, dh=img.offsetHeight;
+      cs={x:Math.floor(dw*0.1),y:Math.floor(dh*0.1),w:Math.floor(dw*0.8),h:Math.floor(dh*0.8)};
+      updateSel();
+    },50);
+  };
+  img.src=URL.createObjectURL(file);
+  document.getElementById('dz-crop').style.display='none';
+  document.getElementById('crop-editor').style.display='block';
+}
+
+function updateSel() {
+  const sel=document.getElementById('crop-sel');
+  sel.style.display='block';
+  sel.style.left=cs.x+'px'; sel.style.top=cs.y+'px';
+  sel.style.width=cs.w+'px'; sel.style.height=cs.h+'px';
+  const img=document.getElementById('crop-img');
+  const sx=cropNatW/(img.offsetWidth||1), sy=cropNatH/(img.offsetHeight||1);
+  document.getElementById('crop-info').textContent=`${Math.round(cs.w*sx)} × ${Math.round(cs.h*sy)} px`;
+}
+
+const wrap=document.getElementById('crop-wrap');
+wrap.addEventListener('mousedown',e=>{
+  const h=e.target.dataset.h, rect=wrap.getBoundingClientRect();
+  ds={x:e.clientX,y:e.clientY,s:{...cs}};
+  if(h) dragging='h:'+h;
+  else if(e.target===document.getElementById('crop-sel')) dragging='move';
+  else { dragging='new'; cs.x=e.clientX-rect.left; cs.y=e.clientY-rect.top; cs.w=1; cs.h=1; }
+  e.preventDefault();
+});
+window.addEventListener('mousemove',e=>{
+  if(!dragging||!ds) return;
+  const rect=wrap.getBoundingClientRect();
+  const dx=e.clientX-ds.x, dy=e.clientY-ds.y, s=ds.s;
+  if(dragging==='move'){cs.x=Math.max(0,Math.min(s.x+dx,wrap.offsetWidth-cs.w));cs.y=Math.max(0,Math.min(s.y+dy,wrap.offsetHeight-cs.h));}
+  else if(dragging==='new'){const cx=e.clientX-rect.left,cy=e.clientY-rect.top;cs.w=Math.abs(cx-cs.x);cs.h=Math.abs(cy-cs.y);}
+  else{const h=dragging.split(':')[1];
+    if(h==='br'){cs.w=Math.max(20,s.w+dx);cs.h=Math.max(20,s.h+dy);}
+    else if(h==='tl'){cs.x=s.x+dx;cs.y=s.y+dy;cs.w=Math.max(20,s.w-dx);cs.h=Math.max(20,s.h-dy);}
+    else if(h==='tr'){cs.y=s.y+dy;cs.w=Math.max(20,s.w+dx);cs.h=Math.max(20,s.h-dy);}
+    else if(h==='bl'){cs.x=s.x+dx;cs.w=Math.max(20,s.w-dx);cs.h=Math.max(20,s.h+dy);}
+  }
+  updateSel();
+});
+window.addEventListener('mouseup',()=>{dragging=null;});
+
+async function doCrop() {
+  const img=document.getElementById('crop-img');
+  const sx=cropNatW/(img.offsetWidth||1), sy=cropNatH/(img.offsetHeight||1);
+  const rx=Math.round(cs.x*sx),ry=Math.round(cs.y*sy),rw=Math.round(cs.w*sx),rh=Math.round(cs.h*sy);
+  const canvas=document.createElement('canvas'); canvas.width=rw; canvas.height=rh;
+  const full=new Image(); full.src=img.src;
+  await new Promise(r=>{if(full.complete)r();else full.onload=r;});
+  canvas.getContext('2d').drawImage(full,rx,ry,rw,rh,0,0,rw,rh);
+  const mime=document.getElementById('crop-fmt').value;
+  const blob=await new Promise(r=>canvas.toBlob(r,mime,0.92));
+  dlBlob(blob, cropFile.name.replace(/\.[^.]+$/,'')+'_crop'+extOf(mime));
+}
+
+function resetCrop() {
+  cropFile=null;
+  document.getElementById('crop-editor').style.display='none';
+  document.getElementById('dz-crop').style.display='block';
+  document.getElementById('fi-crop').value='';
+}
+
+// --- СЖАТИЕ ---
+async function compressAll() {
+  const q=parseInt(document.getElementById('sq').value)/100;
+  const {files,results}=state.compress;
+  for(let i=0;i<files.length;i++){
+    if(results[i]) continue;
+    const f=files[i];
+    const mime=f.type==='image/png'?'image/png':f.type==='image/webp'?'image/webp':'image/jpeg';
+    const canvas=await toCanvas(f,0,0,'');
+    const blob=await new Promise(r=>canvas.toBlob(r,mime,q));
+    results[i]={blob,size:blob.size,name:f.name.replace(/\.[^.]+$/,'')+'_compressed'+extOf(mime)};
+    render('compress');
+  }
+}
+
+// --- ИНИЦИАЛИЗАЦИЯ DROP ZONES ---
+['convert','resize','compress'].forEach(ns=>{
+  const dz=document.getElementById('dz-'+ns);
+  const fi=document.getElementById('fi-'+ns);
+  dz.onclick=()=>fi.click();
+  fi.onchange=e=>handleFiles(e.target.files, ns);
+  dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('drag-over');});
+  dz.addEventListener('dragleave',()=>dz.classList.remove('drag-over'));
+  dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('drag-over');handleFiles(e.dataTransfer.files,ns);});
+});
+
+const dzCrop=document.getElementById('dz-crop');
+const fiCrop=document.getElementById('fi-crop');
+dzCrop.onclick=()=>fiCrop.click();
+fiCrop.onchange=e=>{if(e.target.files[0]) loadCrop(e.target.files[0]);};
+dzCrop.addEventListener('dragover',e=>{e.preventDefault();dzCrop.classList.add('drag-over');});
+dzCrop.addEventListener('dragleave',()=>dzCrop.classList.remove('drag-over'));
+dzCrop.addEventListener('drop',e=>{e.preventDefault();dzCrop.classList.remove('drag-over');if(e.dataTransfer.files[0]) loadCrop(e.dataTransfer.files[0]);});
 </script>
 </body>
 </html>
