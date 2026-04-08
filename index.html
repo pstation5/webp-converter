@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WebP Конвертер</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #0f0f0f;
+      color: #e0e0e0;
+      min-height: 100vh;
+      padding: 20px 16px 40px;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 28px;
+    }
+
+    .header h1 {
+      font-size: 26px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 6px;
+    }
+
+    .header p {
+      font-size: 13px;
+      color: #888;
+    }
+
+    .accent { color: #4da6ff; }
+
+    .drop-zone {
+      border: 2px dashed #333;
+      border-radius: 14px;
+      padding: 36px 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      background: #1a1a1a;
+      margin-bottom: 20px;
+    }
+
+    .drop-zone:hover, .drop-zone.drag-over {
+      border-color: #4da6ff;
+      background: #1a2233;
+    }
+
+    .drop-icon { font-size: 36px; margin-bottom: 10px; }
+
+    .drop-title {
+      font-size: 15px;
+      font-weight: 600;
+      color: #fff;
+      margin-bottom: 4px;
+    }
+
+    .drop-sub { font-size: 12px; color: #666; }
+
+    .settings {
+      background: #1a1a1a;
+      border: 1px solid #2a2a2a;
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 20px;
+    }
+
+    .setting-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .setting-label {
+      font-size: 13px;
+      color: #888;
+      min-width: 70px;
+    }
+
+    input[type="range"] {
+      flex: 1;
+      accent-color: #4da6ff;
+      height: 4px;
+    }
+
+    .setting-value {
+      font-size: 13px;
+      font-weight: 600;
+      color: #fff;
+      min-width: 36px;
+      text-align: right;
+    }
+
+    .file-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    .file-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: #1a1a1a;
+      border: 1px solid #2a2a2a;
+      border-radius: 10px;
+      padding: 10px;
+    }
+
+    .file-thumb {
+      width: 44px;
+      height: 44px;
+      object-fit: cover;
+      border-radius: 6px;
+      flex-shrink: 0;
+      background: #2a2a2a;
+    }
+
+    .file-info { flex: 1; min-width: 0; }
+
+    .file-name {
+      font-size: 13px;
+      font-weight: 600;
+      color: #fff;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-bottom: 2px;
+    }
+
+    .file-meta { font-size: 11px; color: #666; }
+    .file-meta .saved { color: #4da6ff; }
+
+    .file-status { font-size: 11px; color: #666; flex-shrink: 0; }
+    .file-status.done { color: #4caf50; }
+
+    .btn-dl {
+      flex-shrink: 0;
+      background: #4da6ff;
+      color: #000;
+      border: none;
+      border-radius: 7px;
+      padding: 6px 12px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+
+    .btn-dl:hover { opacity: 0.85; }
+
+    .btn-convert {
+      width: 100%;
+      padding: 14px;
+      font-size: 15px;
+      font-weight: 700;
+      border: none;
+      border-radius: 12px;
+      background: #4da6ff;
+      color: #000;
+      cursor: pointer;
+      transition: opacity 0.2s;
+      margin-bottom: 12px;
+    }
+
+    .btn-convert:hover { opacity: 0.85; }
+    .btn-convert:disabled { opacity: 0.4; cursor: default; }
+
+    .btn-all {
+      width: 100%;
+      padding: 12px;
+      font-size: 13px;
+      font-weight: 600;
+      border: 1px solid #333;
+      border-radius: 12px;
+      background: none;
+      color: #aaa;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-all:hover { background: #1a1a1a; color: #fff; }
+
+    .privacy {
+      text-align: center;
+      font-size: 11px;
+      color: #555;
+      margin-top: 20px;
+      line-height: 1.6;
+    }
+
+    #fileInput { display: none; }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <h1>🖼 <span class="accent">WebP</span> Конвертер</h1>
+  <p>Конвертируй изображения прямо на устройстве</p>
+</div>
+
+<div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+  <div class="drop-icon">📁</div>
+  <div class="drop-title">Нажми или перетащи файлы</div>
+  <div class="drop-sub">JPG, PNG, GIF, AVIF, BMP — любой формат</div>
+</div>
+<input type="file" id="fileInput" accept="image/*" multiple>
+
+<div class="settings">
+  <div class="setting-row">
+    <span class="setting-label">Качество</span>
+    <input type="range" id="quality" min="10" max="100" value="85" step="1">
+    <span class="setting-value" id="qualityOut">85%</span>
+  </div>
+</div>
+
+<div class="file-list" id="fileList"></div>
+
+<div id="actions" style="display:none">
+  <button class="btn-convert" id="convertBtn" onclick="convertAll()">Конвертировать все в WebP</button>
+  <button class="btn-all" id="dlAllBtn" style="display:none" onclick="downloadAll()">Скачать все файлы</button>
+</div>
+
+<div class="privacy">
+  🔒 Файлы не загружаются на сервер<br>
+  Всё происходит прямо на твоём устройстве
+</div>
+
+<script>
+  const files = [];
+  const results = {};
+
+  const q = document.getElementById('quality');
+  const qOut = document.getElementById('qualityOut');
+  q.oninput = () => qOut.textContent = q.value + '%';
+
+  const dropZone = document.getElementById('dropZone');
+  dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+  dropZone.addEventListener('drop', e => { e.preventDefault(); dropZone.classList.remove('drag-over'); handleFiles(e.dataTransfer.files); });
+  document.getElementById('fileInput').onchange = e => handleFiles(e.target.files);
+
+  function fmt(bytes) {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / 1024 / 1024).toFixed(1) + ' MB';
+  }
+
+  function handleFiles(fileList) {
+    for (const f of fileList) {
+      if (!f.type.startsWith('image/')) continue;
+      if (files.find(x => x.name === f.name && x.size === f.size)) continue;
+      files.push(f);
+    }
+    renderList();
+    document.getElementById('actions').style.display = files.length ? 'block' : 'none';
+  }
+
+  function renderList() {
+    const list = document.getElementById('fileList');
+    list.innerHTML = '';
+    let allDone = files.length > 0;
+
+    files.forEach((f, i) => {
+      const res = results[i];
+      if (!res) allDone = false;
+
+      const url = URL.createObjectURL(f);
+      const item = document.createElement('div');
+      item.className = 'file-item';
+
+      const saved = res ? Math.round((1 - res.size / f.size) * 100) : null;
+
+      item.innerHTML = `
+        <img src="${url}" class="file-thumb">
+        <div class="file-info">
+          <div class="file-name">${f.name}</div>
+          <div class="file-meta">
+            ${fmt(f.size)}
+            ${res ? `→ ${fmt(res.size)} <span class="saved">-${saved}%</span>` : ''}
+          </div>
+        </div>
+        <span class="file-status ${res ? 'done' : ''}">${res ? '✓' : '...'}</span>
+        ${res ? `<button class="btn-dl" onclick="download(${i})">↓</button>` : ''}
+      `;
+      list.appendChild(item);
+    });
+
+    document.getElementById('dlAllBtn').style.display = allDone && files.length > 1 ? 'block' : 'none';
+  }
+
+  async function convertAll() {
+    const btn = document.getElementById('convertBtn');
+    btn.disabled = true;
+    btn.textContent = 'Конвертируем...';
+    const quality = parseInt(q.value) / 100;
+
+    for (let i = 0; i < files.length; i++) {
+      if (results[i]) continue;
+      const blob = await toWebP(files[i], quality);
+      results[i] = { blob, size: blob.size, name: files[i].name.replace(/\.[^.]+$/, '') + '.webp' };
+      renderList();
+    }
+
+    btn.disabled = false;
+    btn.textContent = 'Конвертировать ещё раз';
+  }
+
+  function toWebP(file, quality) {
+    return new Promise(resolve => {
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.naturalWidth;
+        canvas.height = img.naturalHeight;
+        canvas.getContext('2d').drawImage(img, 0, 0);
+        canvas.toBlob(blob => { URL.revokeObjectURL(url); resolve(blob); }, 'image/webp', quality);
+      };
+      img.src = url;
+    });
+  }
+
+  function download(i) {
+    const res = results[i];
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(res.blob);
+    a.download = res.name;
+    a.click();
+  }
+
+  function downloadAll() {
+    Object.keys(results).forEach(i => setTimeout(() => download(i), i * 300));
+  }
+</script>
+</body>
+</html>
