@@ -71,6 +71,7 @@
     .privacy { text-align: center; font-size: 11px; color: #2a2a3a; margin-top: 20px; letter-spacing: 0.5px; }
     input[type="file"] { display: none; }
   </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 </head>
 <body>
 
@@ -110,7 +111,10 @@
   <div class="file-list" id="list-convert"></div>
   <div id="act-convert" style="display:none">
     <button class="btn-primary" id="btn-convert" onclick="convertAll()">Конвертировать все</button>
-    <button class="btn-secondary" id="dla-convert" style="display:none" onclick="dlAll('convert')">Скачать все</button>
+    <div style="display:none" id="dla-convert-wrap">
+      <button class="btn-secondary" onclick="dlAll('convert')">Скачать все по одному</button>
+      <button class="btn-secondary" onclick="dlZip('convert')" style="margin-top:4px">📦 Скачать все ZIP</button>
+    </div>
   </div>
 </div>
 
@@ -158,7 +162,10 @@
   <div class="file-list" id="list-resize"></div>
   <div id="act-resize" style="display:none">
     <button class="btn-primary" onclick="resizeAll()">Изменить размер</button>
-    <button class="btn-secondary" id="dla-resize" style="display:none" onclick="dlAll('resize')">Скачать все</button>
+    <div style="display:none" id="dla-resize-wrap">
+      <button class="btn-secondary" onclick="dlAll('resize')">Скачать все по одному</button>
+      <button class="btn-secondary" onclick="dlZip('resize')" style="margin-top:4px">📦 Скачать все ZIP</button>
+    </div>
   </div>
 </div>
 
@@ -214,7 +221,10 @@
   <div class="file-list" id="list-compress"></div>
   <div id="act-compress" style="display:none">
     <button class="btn-primary" onclick="compressAll()">Сжать все</button>
-    <button class="btn-secondary" id="dla-compress" style="display:none" onclick="dlAll('compress')">Скачать все</button>
+    <div style="display:none" id="dla-compress-wrap">
+      <button class="btn-secondary" onclick="dlAll('compress')">Скачать все по одному</button>
+      <button class="btn-secondary" onclick="dlZip('compress')" style="margin-top:4px">📦 Скачать все ZIP</button>
+    </div>
   </div>
 </div>
 
@@ -253,6 +263,16 @@ function dlBlob(blob, name) {
   a.click();
   document.body.removeChild(a);
   setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+async function dlZip(ns) {
+  const res = state[ns].results;
+  const keys = Object.keys(res);
+  if (!keys.length) return;
+  const zip = new JSZip();
+  keys.forEach(k => zip.file(res[k].name, res[k].blob));
+  const blob = await zip.generateAsync({ type: 'blob' });
+  dlBlob(blob, ns + '_files.zip');
 }
 
 function dlAll(ns) {
@@ -328,8 +348,8 @@ function render(ns) {
     list.appendChild(item);
   });
   const allDone = files.length>0 && Object.keys(results).length>=files.length;
-  const dlaBtn = document.getElementById('dla-'+ns);
-  if (dlaBtn) dlaBtn.style.display = allDone && files.length>1 ? 'block' : 'none';
+  const dlaWrap = document.getElementById('dla-'+ns+'-wrap');
+  if (dlaWrap) dlaWrap.style.display = allDone && files.length>1 ? 'block' : 'none';
 }
 
 function dlFile(i, ns) { const r=state[ns].results[i]; if(r) dlBlob(r.blob, r.name); }
