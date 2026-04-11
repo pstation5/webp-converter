@@ -70,6 +70,10 @@
     .crop-info { font-size: 12px; color: #555; text-align: center; margin-bottom: 10px; font-weight: 600; }
     .privacy { text-align: center; font-size: 11px; color: #2a2a3a; margin-top: 20px; letter-spacing: 0.5px; }
     input[type="file"] { display: none; }
+    @media (max-width: 480px) {
+      [id$="-wrap"] { flex-direction: column !important; }
+      [id$="-wrap"] .btn-secondary { margin-bottom: 6px !important; }
+    }
   </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 </head>
@@ -512,7 +516,7 @@ async function compressAll() {
   const dz=document.getElementById('dz-'+ns);
   const fi=document.getElementById('fi-'+ns);
   dz.onclick=()=>fi.click();
-  fi.onchange=e=>handleFiles(e.target.files, ns);
+  fi.onchange=e=>{handleFiles(e.target.files, ns); e.target.value='';};
   dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('drag-over');});
   dz.addEventListener('dragleave',()=>dz.classList.remove('drag-over'));
   dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('drag-over');handleFiles(e.dataTransfer.files,ns);});
@@ -521,7 +525,7 @@ async function compressAll() {
 const dzCrop=document.getElementById('dz-crop');
 const fiCrop=document.getElementById('fi-crop');
 dzCrop.onclick=()=>fiCrop.click();
-fiCrop.onchange=e=>{if(e.target.files[0]) loadCrop(e.target.files[0]);};
+fiCrop.onchange=e=>{if(e.target.files[0]){loadCrop(e.target.files[0]);} e.target.value='';};
 dzCrop.addEventListener('dragover',e=>{e.preventDefault();dzCrop.classList.add('drag-over');});
 dzCrop.addEventListener('dragleave',()=>dzCrop.classList.remove('drag-over'));
 dzCrop.addEventListener('drop',e=>{e.preventDefault();dzCrop.classList.remove('drag-over');if(e.dataTransfer.files[0]) loadCrop(e.dataTransfer.files[0]);});
