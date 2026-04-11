@@ -111,9 +111,9 @@
   <div class="file-list" id="list-convert"></div>
   <div id="act-convert" style="display:none">
     <button class="btn-primary" id="btn-convert" onclick="convertAll()">Конвертировать все</button>
-    <div style="display:none" id="dla-convert-wrap">
-      <button class="btn-secondary" onclick="dlAll('convert')">Скачать все по одному</button>
-      <button class="btn-secondary" onclick="dlZip('convert')" style="margin-top:4px">📦 Скачать все ZIP</button>
+    <div style="display:none;gap:8px" id="dla-convert-wrap">
+      <button class="btn-secondary" style="flex:1;margin:0" onclick="dlAll('convert')">Скачать по одному</button>
+      <button class="btn-secondary" style="flex:1;margin:0" onclick="dlZip('convert')">📦 ZIP архив</button>
     </div>
   </div>
 </div>
@@ -162,9 +162,9 @@
   <div class="file-list" id="list-resize"></div>
   <div id="act-resize" style="display:none">
     <button class="btn-primary" onclick="resizeAll()">Изменить размер</button>
-    <div style="display:none" id="dla-resize-wrap">
-      <button class="btn-secondary" onclick="dlAll('resize')">Скачать все по одному</button>
-      <button class="btn-secondary" onclick="dlZip('resize')" style="margin-top:4px">📦 Скачать все ZIP</button>
+    <div style="display:none;gap:8px" id="dla-resize-wrap">
+      <button class="btn-secondary" style="flex:1;margin:0" onclick="dlAll('resize')">Скачать по одному</button>
+      <button class="btn-secondary" style="flex:1;margin:0" onclick="dlZip('resize')">📦 ZIP архив</button>
     </div>
   </div>
 </div>
@@ -221,9 +221,9 @@
   <div class="file-list" id="list-compress"></div>
   <div id="act-compress" style="display:none">
     <button class="btn-primary" onclick="compressAll()">Сжать все</button>
-    <div style="display:none" id="dla-compress-wrap">
-      <button class="btn-secondary" onclick="dlAll('compress')">Скачать все по одному</button>
-      <button class="btn-secondary" onclick="dlZip('compress')" style="margin-top:4px">📦 Скачать все ZIP</button>
+    <div style="display:none;gap:8px" id="dla-compress-wrap">
+      <button class="btn-secondary" style="flex:1;margin:0" onclick="dlAll('compress')">Скачать по одному</button>
+      <button class="btn-secondary" style="flex:1;margin:0" onclick="dlZip('compress')">📦 ZIP архив</button>
     </div>
   </div>
 </div>
@@ -349,7 +349,7 @@ function render(ns) {
   });
   const allDone = files.length>0 && Object.keys(results).length>=files.length;
   const dlaWrap = document.getElementById('dla-'+ns+'-wrap');
-  if (dlaWrap) dlaWrap.style.display = allDone && files.length>1 ? 'block' : 'none';
+  if (dlaWrap) dlaWrap.style.display = allDone && files.length>1 ? 'flex' : 'none';
 }
 
 function dlFile(i, ns) { const r=state[ns].results[i]; if(r) dlBlob(r.blob, r.name); }
