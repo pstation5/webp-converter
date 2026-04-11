@@ -246,12 +246,26 @@ function extOf(mime) {
 }
 
 function dlBlob(blob, name) {
-  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; a.click();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 function dlAll(ns) {
   const res = state[ns].results;
-  Object.keys(res).forEach((k,i) => setTimeout(() => dlBlob(res[k].blob, res[k].name), i*300));
+  const keys = Object.keys(res);
+  let i = 0;
+  const next = () => {
+    if (i >= keys.length) return;
+    dlBlob(res[keys[i]].blob, res[keys[i]].name);
+    i++;
+    setTimeout(next, 600);
+  };
+  next();
 }
 
 function toCanvas(file, w, h, fit) {
