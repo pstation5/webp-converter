@@ -258,6 +258,14 @@
         <input type="range" id="fintensity" min="0" max="100" value="100" oninput="onFilterIntensity(this.value)">
         <span class="setting-value" id="fiv">100%</span>
       </div>
+      <div class="setting-row">
+        <span class="setting-label">Формат</span>
+        <select id="filter-fmt">
+          <option value="image/jpeg">JPG</option>
+          <option value="image/webp">WebP</option>
+          <option value="image/png">PNG</option>
+        </select>
+      </div>
     </div>
     <button class="btn-primary" id="btn-filter-dl" onclick="downloadFiltered()">Скачать с фильтром</button>
     <button class="btn-secondary" onclick="resetFilters()">Другое фото</button>
@@ -791,8 +799,10 @@ async function downloadFiltered(){
   const origData=filterOrigCanvas.getContext('2d').getImageData(0,0,filterOrigCanvas.width,filterOrigCanvas.height);
   const filtered=applyFilter(origData,FILM_FILTERS[activeFilterIdx],filterIntensity);
   const out=renderToCanvas(filtered,FILM_FILTERS[activeFilterIdx]);
-  const blob=await new Promise(r=>out.toBlob(r,'image/jpeg',0.93));
-  dlBlob(blob,filterFile.name.replace(/\.[^.]+$/,'')+'_'+FILM_FILTERS[activeFilterIdx].name+'.jpg');
+  const mime=document.getElementById('filter-fmt').value;
+  const ext=mime==='image/jpeg'?'.jpg':mime==='image/webp'?'.webp':'.png';
+  const blob=await new Promise(r=>out.toBlob(r,mime,0.93));
+  dlBlob(blob,filterFile.name.replace(/\.[^.]+$/,'')+ext);
   btn.disabled=false;btn.textContent='Скачать с фильтром';
 }
 
