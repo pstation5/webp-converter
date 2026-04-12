@@ -241,8 +241,6 @@
   </div>
 </div>
 
-<div class="privacy">🔒 Файлы не покидают устройство</div>
-
 <!-- ФИЛЬТРЫ -->
 <div class="panel" id="panel-filters">
   <div class="drop-zone" id="dz-filters">
@@ -265,6 +263,8 @@
     <button class="btn-secondary" onclick="resetFilters()">Другое фото</button>
   </div>
 </div>
+
+<div class="privacy">🔒 Файлы не покидают устройство</div>
 </div>
 
 <script>
@@ -280,7 +280,12 @@ function switchTab(name) {
   const names = ['convert','resize','crop','compress','filters'];
   document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', names[i] === name));
   document.querySelectorAll('.panel').forEach(p => p.classList.toggle('active', p.id === 'panel-'+name));
+  localStorage.setItem('activeTab', name);
 }
+
+// Восстановить вкладку после обновления страницы
+const savedTab = localStorage.getItem('activeTab');
+if (savedTab) switchTab(savedTab);
 
 function fmt(b) {
   if (b < 1024) return b+' B';
