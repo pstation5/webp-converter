@@ -71,11 +71,11 @@
     .crop-info { font-size: 12px; color: #555; text-align: center; margin-bottom: 10px; font-weight: 600; }
     .privacy { text-align: center; font-size: 11px; color: #2a2a3a; margin-top: 20px; letter-spacing: 0.5px; }
     input[type="file"] { display: none; }
-    .filter-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; margin-bottom: 14px; }
+    .filter-grid { display: grid; grid-template-columns: repeat(5,1fr); gap: 6px; margin-bottom: 14px; }
     .filter-card { border-radius: 10px; overflow: hidden; cursor: pointer; border: 2px solid transparent; transition: border-color 0.2s; background: #0d0d14; }
     .filter-card.active { border-color: #4da6ff; }
     .filter-card canvas { width: 100%; display: block; aspect-ratio: 1; object-fit: cover; }
-    .filter-card-name { font-size: 9px; font-weight: 700; text-align: center; padding: 5px 2px; color: #555; letter-spacing: 0.5px; text-transform: uppercase; }
+    .filter-card-name { font-size: 8px; font-weight: 700; text-align: center; padding: 4px 2px; color: #555; letter-spacing: 0.4px; text-transform: uppercase; }
     .filter-card.active .filter-card-name { color: #4da6ff; }
     #filter-preview { width: 100%; border-radius: 12px; display: block; margin-bottom: 14px; }
     @media (max-width: 480px) {
@@ -675,7 +675,7 @@ function loadFilterImage(file) {
 function buildFilterCards() {
   const grid=document.getElementById('filter-grid');
   grid.innerHTML='';
-  const CS=70;
+  const CS=180;
   // Scaled source for card thumbnails
   const sc=Math.min(1,CS/filterPreviewSrc.width,CS/filterPreviewSrc.height);
   const tw=Math.max(1,Math.round(filterPreviewSrc.width*sc));
