@@ -13,8 +13,9 @@
     .header h1 { font-size: 26px; font-weight: 800; color: #fff; margin-bottom: 6px; letter-spacing: -0.5px; }
     .header h1 span { background: linear-gradient(135deg, #4da6ff, #a855f7); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
     .header p { font-size: 12px; color: #444; letter-spacing: 1px; text-transform: uppercase; }
-    .tabs { display: grid; grid-template-columns: repeat(4,1fr); gap: 4px; margin-bottom: 20px; background: #111118; border-radius: 14px; padding: 5px; border: 1px solid #1e1e2e; }
-    .tab { padding: 10px 4px; font-size: 11px; font-weight: 700; border: none; border-radius: 10px; background: none; color: #444; cursor: pointer; transition: all 0.2s; text-align: center; letter-spacing: 0.3px; }
+    .tabs { display: flex; gap: 4px; margin-bottom: 20px; background: #111118; border-radius: 14px; padding: 5px; border: 1px solid #1e1e2e; overflow-x: auto; scrollbar-width: none; }
+    .tabs::-webkit-scrollbar { display: none; }
+    .tab { flex: 1; min-width: 64px; padding: 10px 4px; font-size: 11px; font-weight: 700; border: none; border-radius: 10px; background: none; color: #444; cursor: pointer; transition: all 0.2s; text-align: center; letter-spacing: 0.3px; white-space: nowrap; }
     .tab.active { background: #1e1e2e; color: #fff; box-shadow: 0 0 0 1px #2a2a4a; }
     .tab:hover:not(.active) { color: #888; }
     .panel { display: none; }
@@ -70,6 +71,13 @@
     .crop-info { font-size: 12px; color: #555; text-align: center; margin-bottom: 10px; font-weight: 600; }
     .privacy { text-align: center; font-size: 11px; color: #2a2a3a; margin-top: 20px; letter-spacing: 0.5px; }
     input[type="file"] { display: none; }
+    .filter-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; margin-bottom: 14px; }
+    .filter-card { border-radius: 10px; overflow: hidden; cursor: pointer; border: 2px solid transparent; transition: border-color 0.2s; background: #0d0d14; }
+    .filter-card.active { border-color: #4da6ff; }
+    .filter-card canvas { width: 100%; display: block; aspect-ratio: 1; object-fit: cover; }
+    .filter-card-name { font-size: 9px; font-weight: 700; text-align: center; padding: 5px 2px; color: #555; letter-spacing: 0.5px; text-transform: uppercase; }
+    .filter-card.active .filter-card-name { color: #4da6ff; }
+    #filter-preview { width: 100%; border-radius: 12px; display: block; margin-bottom: 14px; }
     @media (max-width: 480px) {
       [id$="-wrap"] { flex-direction: column !important; }
       [id$="-wrap"] .btn-secondary { margin-bottom: 6px !important; }
@@ -82,7 +90,7 @@
 <div class="wrap">
 <div class="header">
   <h1>🛠 <span>Image Tools</span></h1>
-  <p>Конвертер · Размер · Кроп · Сжатие</p>
+  <p>Конвертер · Размер · Кроп · Сжатие · Фильтры</p>
 </div>
 
 <div class="tabs">
@@ -90,6 +98,7 @@
   <button class="tab" onclick="switchTab('resize')">📐 Размер</button>
   <button class="tab" onclick="switchTab('crop')">✂️ Кроп</button>
   <button class="tab" onclick="switchTab('compress')">⚡ Сжатие</button>
+  <button class="tab" onclick="switchTab('filters')">🎨 Фильтры</button>
 </div>
 
 <!-- КОНВЕРТЕР -->
@@ -235,6 +244,29 @@
 <div class="privacy">🔒 Файлы не покидают устройство</div>
 </div>
 
+<!-- ФИЛЬТРЫ -->
+<div class="panel" id="panel-filters">
+  <div class="drop-zone" id="dz-filters">
+    <div class="drop-icon">🎞</div>
+    <div class="drop-title">Нажми или перетащи фото</div>
+    <div class="drop-sub">Ретро-фильтры в стиле плёночной фотографии</div>
+  </div>
+  <input type="file" id="fi-filters" accept="image/*">
+  <div id="filter-editor" style="display:none">
+    <canvas id="filter-preview"></canvas>
+    <div class="filter-grid" id="filter-grid"></div>
+    <div class="settings">
+      <div class="setting-row">
+        <span class="setting-label">Сила</span>
+        <input type="range" id="fintensity" min="0" max="100" value="100" oninput="onFilterIntensity(this.value)">
+        <span class="setting-value" id="fiv">100%</span>
+      </div>
+    </div>
+    <button class="btn-primary" id="btn-filter-dl" onclick="downloadFiltered()">Скачать с фильтром</button>
+    <button class="btn-secondary" onclick="resetFilters()">Другое фото</button>
+  </div>
+</div>
+
 <script>
 const state = {
   convert: { files: [], results: {} },
@@ -245,7 +277,8 @@ const state = {
 let convertMode = 'webp';
 
 function switchTab(name) {
-  document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', ['convert','resize','crop','compress'][i] === name));
+  const names = ['convert','resize','crop','compress','filters'];
+  document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', names[i] === name));
   document.querySelectorAll('.panel').forEach(p => p.classList.toggle('active', p.id === 'panel-'+name));
 }
 
@@ -529,6 +562,200 @@ fiCrop.onchange=e=>{if(e.target.files[0]){loadCrop(e.target.files[0]);} e.target
 dzCrop.addEventListener('dragover',e=>{e.preventDefault();dzCrop.classList.add('drag-over');});
 dzCrop.addEventListener('dragleave',()=>dzCrop.classList.remove('drag-over'));
 dzCrop.addEventListener('drop',e=>{e.preventDefault();dzCrop.classList.remove('drag-over');if(e.dataTransfer.files[0]) loadCrop(e.dataTransfer.files[0]);});
+
+// --- ФИЛЬТРЫ ---
+const FILM_FILTERS = [
+  { name:'Original',    r:[[0,0],[255,255]],                          g:[[0,0],[255,255]],                          b:[[0,0],[255,255]],                          sat:1,    grain:0,    vig:0    },
+  { name:'Portra 400',  r:[[0,15],[64,86],[128,148],[192,200],[255,252]], g:[[0,8],[64,72],[128,132],[192,188],[255,242]], b:[[0,20],[64,58],[128,112],[192,168],[255,205]], sat:0.82, grain:0.05, vig:0.3  },
+  { name:'Velvia 50',   r:[[0,0],[64,72],[128,145],[192,215],[255,255]], g:[[0,0],[64,60],[128,130],[192,200],[255,248]], b:[[0,2],[64,52],[128,122],[192,192],[255,252]], sat:1.45, grain:0.02, vig:0.2  },
+  { name:'Tri-X 400',   bw:true, bwc:[[0,0],[32,18],[96,108],[160,180],[220,236],[255,255]],                        sat:0,    grain:0.14, vig:0.42 },
+  { name:'Kodachrome',  r:[[0,10],[64,96],[128,162],[192,218],[255,255]], g:[[0,5],[64,64],[128,128],[192,192],[255,240]], b:[[0,0],[64,45],[128,105],[192,175],[255,222]], sat:1.25, grain:0.04, vig:0.28 },
+  { name:'Agfa Vista',  r:[[0,18],[128,138],[255,235]],                g:[[0,15],[128,138],[255,242]],                b:[[0,25],[64,70],[128,148],[255,255]],          sat:0.72, grain:0.065,vig:0.22 },
+  { name:'Cross Proc.', r:[[0,0],[64,96],[128,168],[192,220],[255,255]], g:[[0,25],[64,42],[128,115],[192,195],[255,228]], b:[[0,85],[64,65],[128,95],[192,185],[255,200]], sat:1.3,  grain:0.05, vig:0.42 },
+  { name:'Cinematic',   r:[[0,5],[64,78],[128,148],[192,200],[255,228]], g:[[0,5],[64,62],[128,122],[192,178],[255,208]], b:[[0,35],[64,72],[128,135],[192,185],[255,218]], sat:0.88, grain:0.03, vig:0.48 },
+  { name:'Faded Matte', r:[[0,42],[64,88],[128,148],[255,218]],       g:[[0,38],[64,82],[128,140],[255,212]],       b:[[0,52],[64,90],[128,145],[255,208]],          sat:0.68, grain:0.04, vig:0.15 },
+];
+
+let filterFile=null, filterOrigCanvas=null, filterPreviewSrc=null;
+let activeFilterIdx=0, filterIntensity=1;
+
+function buildLUT(pts) {
+  const lut = new Uint8Array(256);
+  for (let i=0; i<256; i++) {
+    let lo=pts[0], hi=pts[pts.length-1];
+    for (let j=0; j<pts.length-1; j++) { if(i>=pts[j][0]&&i<=pts[j+1][0]){lo=pts[j];hi=pts[j+1];break;} }
+    const t = lo[0]===hi[0] ? 1 : (i-lo[0])/(hi[0]-lo[0]);
+    lut[i] = Math.max(0, Math.min(255, Math.round(lo[1]+t*(hi[1]-lo[1]))));
+  }
+  return lut;
+}
+
+function applyFilter(srcData, f, intensity) {
+  const w=srcData.width, h=srcData.height;
+  const d = new Uint8ClampedArray(srcData.data);
+  const rLUT = f.r ? buildLUT(f.r) : null;
+  const gLUT = f.g ? buildLUT(f.g) : null;
+  const bLUT = f.b ? buildLUT(f.b) : null;
+  const bwLUT = f.bw && f.bwc ? buildLUT(f.bwc) : null;
+
+  for (let i=0; i<d.length; i+=4) {
+    let r=d[i], g=d[i+1], b=d[i+2];
+    const or=r, og=g, ob=b;
+    if (f.bw) {
+      const gray = 0.299*r+0.587*g+0.114*b;
+      r=g=b = bwLUT ? bwLUT[Math.min(255,Math.round(gray))] : Math.round(gray);
+    } else {
+      if(rLUT) r=rLUT[r]; if(gLUT) g=gLUT[g]; if(bLUT) b=bLUT[b];
+      if (f.sat !== 1) {
+        const gr = 0.299*r+0.587*g+0.114*b;
+        r=gr+(r-gr)*f.sat; g=gr+(g-gr)*f.sat; b=gr+(b-gr)*f.sat;
+      }
+    }
+    d[i]  = Math.max(0,Math.min(255,Math.round(or+(r-or)*intensity)));
+    d[i+1]= Math.max(0,Math.min(255,Math.round(og+(g-og)*intensity)));
+    d[i+2]= Math.max(0,Math.min(255,Math.round(ob+(b-ob)*intensity)));
+  }
+
+  if (f.grain > 0) {
+    const amt = f.grain * intensity * 255;
+    for (let i=0; i<d.length; i+=4) {
+      const n=(Math.random()-0.5)*amt;
+      d[i]  =Math.max(0,Math.min(255,d[i]  +n));
+      d[i+1]=Math.max(0,Math.min(255,d[i+1]+n));
+      d[i+2]=Math.max(0,Math.min(255,d[i+2]+n));
+    }
+  }
+
+  if (f.vig > 0) {
+    const cx=w/2, cy=h/2, md=Math.sqrt(cx*cx+cy*cy), va=f.vig*intensity;
+    for (let y=0; y<h; y++) {
+      for (let x=0; x<w; x++) {
+        const i=(y*w+x)*4;
+        const dist=Math.sqrt((x-cx)**2+(y-cy)**2)/md;
+        const fac=1-dist*dist*va;
+        d[i]  =Math.max(0,Math.min(255,Math.round(d[i]  *fac)));
+        d[i+1]=Math.max(0,Math.min(255,Math.round(d[i+1]*fac)));
+        d[i+2]=Math.max(0,Math.min(255,Math.round(d[i+2]*fac)));
+      }
+    }
+  }
+
+  return new ImageData(d, w, h);
+}
+
+function loadFilterImage(file) {
+  filterFile=file;
+  const img=new Image(), url=URL.createObjectURL(file);
+  img.onload=()=>{
+    // Full-res canvas for download
+    filterOrigCanvas=document.createElement('canvas');
+    filterOrigCanvas.width=img.naturalWidth; filterOrigCanvas.height=img.naturalHeight;
+    filterOrigCanvas.getContext('2d').drawImage(img,0,0);
+
+    // Preview source (max 900px wide)
+    const maxP=900, sc=Math.min(1,maxP/img.naturalWidth,maxP/img.naturalHeight);
+    const pw=Math.round(img.naturalWidth*sc), ph=Math.round(img.naturalHeight*sc);
+    const pc=document.createElement('canvas'); pc.width=pw; pc.height=ph;
+    pc.getContext('2d').drawImage(img,0,0,pw,ph);
+    filterPreviewSrc=pc.getContext('2d').getImageData(0,0,pw,ph);
+    URL.revokeObjectURL(url);
+
+    const disp=document.getElementById('filter-preview');
+    disp.width=pw; disp.height=ph;
+
+    document.getElementById('dz-filters').style.display='none';
+    document.getElementById('filter-editor').style.display='block';
+
+    buildFilterCards();
+    renderFilterPreview();
+  };
+  img.src=url;
+}
+
+function buildFilterCards() {
+  const grid=document.getElementById('filter-grid');
+  grid.innerHTML='';
+  const CS=70;
+  // Scaled source for card thumbnails
+  const sc=Math.min(1,CS/filterPreviewSrc.width,CS/filterPreviewSrc.height);
+  const tw=Math.max(1,Math.round(filterPreviewSrc.width*sc));
+  const th=Math.max(1,Math.round(filterPreviewSrc.height*sc));
+  const tmp=document.createElement('canvas'); tmp.width=filterPreviewSrc.width; tmp.height=filterPreviewSrc.height;
+  tmp.getContext('2d').putImageData(filterPreviewSrc,0,0);
+  const tc=document.createElement('canvas'); tc.width=tw; tc.height=th;
+  tc.getContext('2d').drawImage(tmp,0,0,tw,th);
+  const thumbSrc=tc.getContext('2d').getImageData(0,0,tw,th);
+
+  FILM_FILTERS.forEach((f,idx)=>{
+    const card=document.createElement('div');
+    card.className='filter-card'+(idx===activeFilterIdx?' active':'');
+    card.onclick=()=>{ activeFilterIdx=idx; document.querySelectorAll('.filter-card').forEach((c,i)=>c.classList.toggle('active',i===idx)); renderFilterPreview(); };
+
+    // Square crop canvas
+    const size=Math.min(tw,th);
+    const mc=document.createElement('canvas'); mc.width=size; mc.height=size;
+    const filtered=applyFilter(thumbSrc,f,1);
+    const ftmp=document.createElement('canvas'); ftmp.width=tw; ftmp.height=th;
+    ftmp.getContext('2d').putImageData(filtered,0,0);
+    mc.getContext('2d').drawImage(ftmp, (tw-size)/2,(th-size)/2,size,size, 0,0,size,size);
+
+    const nm=document.createElement('div'); nm.className='filter-card-name'; nm.textContent=f.name;
+    card.appendChild(mc); card.appendChild(nm);
+    grid.appendChild(card);
+  });
+}
+
+function renderFilterPreview() {
+  if (!filterPreviewSrc) return;
+  const f=FILM_FILTERS[activeFilterIdx];
+  const filtered=applyFilter(filterPreviewSrc,f,filterIntensity);
+  const disp=document.getElementById('filter-preview');
+  const tmp=document.createElement('canvas'); tmp.width=filtered.width; tmp.height=filtered.height;
+  tmp.getContext('2d').putImageData(filtered,0,0);
+  disp.getContext('2d').drawImage(tmp,0,0,disp.width,disp.height);
+}
+
+function onFilterIntensity(val) {
+  document.getElementById('fiv').textContent=val+'%';
+  filterIntensity=parseInt(val)/100;
+  renderFilterPreview();
+}
+
+async function downloadFiltered() {
+  if (!filterOrigCanvas) return;
+  const btn=document.getElementById('btn-filter-dl');
+  btn.disabled=true; btn.textContent='Обрабатываем...';
+  const f=FILM_FILTERS[activeFilterIdx];
+  const ctx=filterOrigCanvas.getContext('2d');
+  const origData=ctx.getImageData(0,0,filterOrigCanvas.width,filterOrigCanvas.height);
+  await new Promise(r=>setTimeout(r,0)); // yield to repaint
+  const filtered=applyFilter(origData,f,filterIntensity);
+  const out=document.createElement('canvas'); out.width=filtered.width; out.height=filtered.height;
+  out.getContext('2d').putImageData(filtered,0,0);
+  const mime='image/jpeg';
+  const blob=await new Promise(r=>out.toBlob(r,mime,0.93));
+  dlBlob(blob, filterFile.name.replace(/\.[^.]+$/,'')+'_'+f.name.replace(/\s+/g,'_')+'.jpg');
+  btn.disabled=false; btn.textContent='Скачать с фильтром';
+}
+
+function resetFilters() {
+  filterFile=null; filterOrigCanvas=null; filterPreviewSrc=null; activeFilterIdx=0; filterIntensity=1;
+  document.getElementById('filter-editor').style.display='none';
+  document.getElementById('dz-filters').style.display='block';
+  document.getElementById('fi-filters').value='';
+  document.getElementById('fintensity').value=100;
+  document.getElementById('fiv').textContent='100%';
+  document.getElementById('filter-grid').innerHTML='';
+}
+
+// --- ИНИЦИАЛИЗАЦИЯ ФИЛЬТРОВ DROP ZONE ---
+const dzFilters=document.getElementById('dz-filters');
+const fiFilters=document.getElementById('fi-filters');
+dzFilters.onclick=()=>fiFilters.click();
+fiFilters.onchange=e=>{if(e.target.files[0]) loadFilterImage(e.target.files[0]); e.target.value='';};
+dzFilters.addEventListener('dragover',e=>{e.preventDefault();dzFilters.classList.add('drag-over');});
+dzFilters.addEventListener('dragleave',()=>dzFilters.classList.remove('drag-over'));
+dzFilters.addEventListener('drop',e=>{e.preventDefault();dzFilters.classList.remove('drag-over');if(e.dataTransfer.files[0]) loadFilterImage(e.dataTransfer.files[0]);});
 </script>
 </body>
 </html>
