@@ -563,7 +563,338 @@ dzCrop.addEventListener('dragover',e=>{e.preventDefault();dzCrop.classList.add('
 dzCrop.addEventListener('dragleave',()=>dzCrop.classList.remove('drag-over'));
 dzCrop.addEventListener('drop',e=>{e.preventDefault();dzCrop.classList.remove('drag-over');if(e.dataTransfer.files[0]) loadCrop(e.dataTransfer.files[0]);});
 
-// === ПРОФЕССИОНАЛЬНЫЕ ПЛЁНОЧНЫЕ ФИЛЬТРЫ ===
+// === DISPOSABLE / FILM CAMERA FILTERS ===
+
+function c255(v){return v<0?0:v>255?255:Math.round(v);}
+function gaussRand(){let u=0,v=0;while(!u)u=Math.random();while(!v)v=Math.random();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);}
+function buildLUT(pts){const lut=new Uint8Array(256);for(let i=0;i<256;i++){let lo=pts[0],hi=pts[pts.length-1];for(let j=0;j<pts.length-1;j++){if(i>=pts[j][0]&&i<=pts[j+1][0]){lo=pts[j];hi=pts[j+1];break;}}const t=lo[0]===hi[0]?1:(i-lo[0])/(hi[0]-lo[0]);lut[i]=Math.max(0,Math.min(255,Math.round(lo[1]+t*(hi[1]-lo[1]))));}return lut;}
+
+function boxBlur(src,w,h,r){const tmp=new Float32Array(w*h),out=new Float32Array(w*h);for(let y=0;y<h;y++){let s=0;const b=y*w;for(let x=0;x<w;x++){s+=src[b+Math.min(w-1,x+r)];if(x>0)s-=src[b+Math.max(0,x-r-1)];tmp[b+x]=s/Math.min(2*r+1,w);}}for(let x=0;x<w;x++){let s=0;for(let y=0;y<h;y++){s+=tmp[Math.min(h-1,y+r)*w+x];if(y>0)s-=tmp[Math.max(0,y-r-1)*w+x];out[y*w+x]=s/Math.min(2*r+1,h);}}return out;}
+function gBlur(m,w,h,r){const ri=Math.max(1,Math.round(r));for(let i=0;i<3;i++)m=boxBlur(m,w,h,ri);return m;}
+
+const FILM_FILTERS = [
+  { name:'Original' },
+  {
+    name:'Disposable',
+    stamp:'2.11\'98',
+    r:[[0,18],[64,88],[128,152],[192,208],[255,250]],
+    g:[[0,12],[64,80],[128,140],[192,192],[255,240]],
+    b:[[0,8],[64,65],[128,122],[192,175],[255,220]],
+    sat:0.92, chromatic:3,
+    leaks:[{x:0.9,y:0.9,r:0.55,col:[255,130,30],str:0.60}],
+    flash:{str:0.14,rad:0.42},
+    grain:{amt:0.085,rough:1,col:0.05}, vig:0.32,
+  },
+  {
+    name:'Лихие 90-е',
+    stamp:'23.11\'98',
+    r:[[0,32],[64,98],[128,160],[192,210],[255,248]],
+    g:[[0,20],[64,75],[128,132],[192,182],[255,232]],
+    b:[[0,14],[64,58],[128,108],[192,155],[255,198]],
+    sat:0.78, chromatic:4,
+    leaks:[
+      {x:0.0,y:1.0,r:0.68,col:[255,95,0],str:0.68},
+      {x:1.0,y:0.0,r:0.55,col:[255,155,0],str:0.45},
+    ],
+    flash:null,
+    grain:{amt:0.10,rough:2,col:0.12}, vig:0.45,
+  },
+  {
+    name:'Light Leak',
+    stamp:'14.5\'99',
+    r:[[0,22],[128,158],[255,245]],
+    g:[[0,15],[128,138],[255,232]],
+    b:[[0,10],[128,112],[255,200]],
+    sat:0.85, chromatic:2,
+    leaks:[
+      {x:0.5,y:0.0,r:0.72,col:[255,110,15],str:0.75},
+      {x:0.5,y:1.0,r:0.65,col:[255,80,0],str:0.55},
+    ],
+    flash:null,
+    grain:{amt:0.07,rough:1,col:0.07}, vig:0.50,
+  },
+  {
+    name:'Expired Film',
+    stamp:'3.8\'97',
+    r:[[0,60],[64,118],[128,175],[192,215],[255,248]],
+    g:[[0,25],[64,62],[128,115],[192,165],[255,215]],
+    b:[[0,15],[64,45],[128,88],[192,138],[255,185]],
+    sat:0.58, chromatic:5,
+    leaks:[{x:0.08,y:0.5,r:0.65,col:[255,45,110],str:0.40}],
+    flash:null,
+    grain:{amt:0.115,rough:2,col:0.22}, vig:0.40,
+  },
+  {
+    name:'Y2K Glitch',
+    stamp:'12.2\'00',
+    r:[[0,5],[64,70],[128,145],[192,202],[255,252]],
+    g:[[0,5],[64,65],[128,128],[192,182],[255,240]],
+    b:[[0,18],[64,82],[128,148],[192,200],[255,255]],
+    sat:1.18, chromatic:10,
+    leaks:[
+      {x:0.98,y:0.02,r:0.52,col:[0,210,255],str:0.32},
+      {x:0.02,y:0.98,r:0.45,col:[255,60,210],str:0.28},
+    ],
+    flash:null,
+    grain:{amt:0.072,rough:1,col:0.10}, vig:0.38,
+  },
+  {
+    name:'Cross Process',
+    stamp:'7.3\'98',
+    r:[[0,0],[48,68],[96,148],[160,200],[220,230],[255,252]],
+    g:[[0,32],[48,48],[96,112],[160,178],[220,212],[255,235]],
+    b:[[0,105],[48,82],[96,112],[160,172],[220,208],[255,232]],
+    sat:1.30, chromatic:5,
+    leaks:[{x:0.95,y:0.05,r:0.55,col:[80,255,120],str:0.22}],
+    flash:null,
+    grain:{amt:0.062,rough:1,col:0.11}, vig:0.42,
+  },
+  {
+    name:'Night Flash',
+    stamp:'86.11\'12',
+    r:[[0,4],[64,55],[128,125],[192,180],[255,230]],
+    g:[[0,4],[64,50],[128,112],[192,165],[255,215]],
+    b:[[0,22],[64,82],[128,150],[192,202],[255,250]],
+    sat:0.82, chromatic:3,
+    leaks:[{x:0.5,y:0.0,r:0.75,col:[255,95,15],str:0.55}],
+    flash:{str:0.28,rad:0.32},
+    grain:{amt:0.125,rough:2,col:0.08}, vig:0.62,
+  },
+  {
+    name:'Fuji Quicksnap',
+    stamp:'15.9\'01',
+    r:[[0,10],[64,76],[128,138],[192,192],[255,246]],
+    g:[[0,8],[64,74],[128,136],[192,190],[255,242]],
+    b:[[0,14],[64,72],[128,134],[192,186],[255,238]],
+    sat:1.06, chromatic:2,
+    leaks:[{x:0.88,y:0.88,r:0.42,col:[255,148,45],str:0.42}],
+    flash:{str:0.10,rad:0.40},
+    grain:{amt:0.078,rough:1,col:0.04}, vig:0.26,
+  },
+];
+
+let filterFile=null,filterOrigCanvas=null,filterPreviewSrc=null;
+let activeFilterIdx=0,filterIntensity=1;
+
+function applyFilter(srcData,f,intensity){
+  if(!f||f.name==='Original')return new ImageData(new Uint8ClampedArray(srcData.data),srcData.width,srcData.height);
+  const w=srcData.width,h=srcData.height;
+  const orig=srcData.data;
+  const d=new Uint8ClampedArray(orig);
+
+  // 1. Радиальная хроматическая аберрация (как на плёнке — сдвиг каналов к краям)
+  if(f.chromatic>0){
+    const shift=f.chromatic*intensity,cx=w/2,cy=h/2;
+    for(let y=0;y<h;y++){
+      for(let x=0;x<w;x++){
+        const i=(y*w+x)*4;
+        const dx=(x-cx)/cx,dy=(y-cy)/cy;
+        const dist=Math.sqrt(dx*dx+dy*dy);
+        const s=dist*shift;
+        const rx=Math.round(x-dx*s),ry=Math.round(y-dy*s);
+        const bx=Math.round(x+dx*s),by_=Math.round(y+dy*s);
+        if(rx>=0&&rx<w&&ry>=0&&ry<h)d[i]=orig[(ry*w+rx)*4];
+        if(bx>=0&&bx<w&&by_>=0&&by_<h)d[i+2]=orig[(by_*w+bx)*4+2];
+      }
+    }
+  }
+
+  // 2. Цветовые кривые
+  const rL=f.r?buildLUT(f.r):null,gL=f.g?buildLUT(f.g):null,bL=f.b?buildLUT(f.b):null;
+  for(let i=0;i<d.length;i+=4){
+    if(rL)d[i]=rL[d[i]];if(gL)d[i+1]=gL[d[i+1]];if(bL)d[i+2]=bL[d[i+2]];
+  }
+
+  // 3. Насыщенность
+  if(f.sat!==undefined&&f.sat!==1){
+    for(let i=0;i<d.length;i+=4){
+      const gr=d[i]*0.299+d[i+1]*0.587+d[i+2]*0.114;
+      d[i]=c255(gr+(d[i]-gr)*f.sat);d[i+1]=c255(gr+(d[i+1]-gr)*f.sat);d[i+2]=c255(gr+(d[i+2]-gr)*f.sat);
+    }
+  }
+
+  // 4. Вспышка (центральное осветление как от фотовспышки)
+  if(f.flash&&f.flash.str>0){
+    const cx=w/2,cy=h/2,fr=f.flash.rad*Math.min(w,h)/2,fStr=f.flash.str*intensity;
+    for(let y=0;y<h;y++){for(let x=0;x<w;x++){
+      const i=(y*w+x)*4;
+      const dist=Math.sqrt((x-cx)**2+(y-cy)**2)/fr;
+      const fac=Math.max(0,1-dist)*fStr;
+      d[i]=c255(d[i]+(255-d[i])*fac);d[i+1]=c255(d[i+1]+(255-d[i+1])*fac);d[i+2]=c255(d[i+2]+(255-d[i+2])*fac);
+    }}
+  }
+
+  // 5. Засветки (light leaks — screen blend)
+  if(f.leaks){
+    for(const lk of f.leaks){
+      const lx=lk.x*w,ly=lk.y*h,lr=lk.r*Math.sqrt(w*w+h*h),lStr=lk.str*intensity;
+      for(let y=0;y<h;y++){for(let x=0;x<w;x++){
+        const i=(y*w+x)*4;
+        const dist=Math.sqrt((x-lx)**2+(y-ly)**2)/lr;
+        const fac=Math.max(0,1-dist)**1.6*lStr;
+        if(fac>0.003){
+          d[i]  =c255(255-(255-d[i])  *(1-fac*lk.col[0]/255));
+          d[i+1]=c255(255-(255-d[i+1])*(1-fac*lk.col[1]/255));
+          d[i+2]=c255(255-(255-d[i+2])*(1-fac*lk.col[2]/255));
+        }
+      }}
+    }
+  }
+
+  // 6. Зерно (Gaussian, сильнее в полутонах)
+  if(f.grain&&f.grain.amt>0){
+    const{amt,rough=0,col=0}=f.grain;
+    const A=amt*intensity*255,C=col*intensity*255,bs=1+Math.round(rough);
+    for(let y=0;y<h;y+=bs){for(let x=0;x<w;x+=bs){
+      const ln=gaussRand()*A,rn=C>0?gaussRand()*C:0,gn=C>0?gaussRand()*C:0,bn=C>0?gaussRand()*C:0;
+      for(let dy=0;dy<bs&&y+dy<h;dy++){for(let dx=0;dx<bs&&x+dx<w;dx++){
+        const idx=((y+dy)*w+(x+dx))*4;
+        const lum=(d[idx]*0.299+d[idx+1]*0.587+d[idx+2]*0.114)/255;
+        const s=Math.min(1,3.8*lum*(1-lum)*1.25);
+        d[idx]  =c255(d[idx]  +(ln+rn)*s);
+        d[idx+1]=c255(d[idx+1]+(ln+gn)*s);
+        d[idx+2]=c255(d[idx+2]+(ln+bn)*s);
+      }}
+    }}
+  }
+
+  // 7. Виньетка (кубическая для мягкого края)
+  if(f.vig>0){
+    const vig=f.vig*intensity,cx=w/2,cy=h/2,md=Math.sqrt(cx*cx+cy*cy);
+    for(let y=0;y<h;y++){for(let x=0;x<w;x++){
+      const i=(y*w+x)*4;
+      const dist=Math.sqrt((x-cx)**2+(y-cy)**2)/md;
+      const fac=Math.max(0,1-dist*dist*dist*vig*1.8);
+      d[i]=c255(d[i]*fac);d[i+1]=c255(d[i+1]*fac);d[i+2]=c255(d[i+2]*fac);
+    }}
+  }
+
+  // Смешивание с оригиналом по intensity
+  if(intensity<1){
+    for(let i=0;i<d.length;i+=4){
+      d[i]  =c255(orig[i]  +(d[i]  -orig[i]  )*intensity);
+      d[i+1]=c255(orig[i+1]+(d[i+1]-orig[i+1])*intensity);
+      d[i+2]=c255(orig[i+2]+(d[i+2]-orig[i+2])*intensity);
+    }
+  }
+
+  return new ImageData(d,w,h);
+}
+
+// Дата-штамп поверх канваса (как на плёночных камерах)
+function drawStamp(ctx,w,h,dateStr){
+  const sz=Math.max(11,Math.round(w*0.026));
+  ctx.save();
+  ctx.font=`bold ${sz}px 'Courier New',monospace`;
+  ctx.fillStyle='rgba(255,138,0,0.90)';
+  ctx.shadowColor='rgba(200,60,0,0.6)';
+  ctx.shadowBlur=sz*0.4;
+  ctx.textAlign='right';
+  ctx.textBaseline='bottom';
+  ctx.fillText(dateStr,w-Math.round(w*0.022),h-Math.round(h*0.022));
+  ctx.restore();
+}
+
+function renderToCanvas(imageData,f,filterIdx){
+  const tmp=document.createElement('canvas');
+  tmp.width=imageData.width;tmp.height=imageData.height;
+  const ctx=tmp.getContext('2d');
+  ctx.putImageData(imageData,0,0);
+  if(f&&f.stamp)drawStamp(ctx,tmp.width,tmp.height,f.stamp);
+  return tmp;
+}
+
+function loadFilterImage(file){
+  filterFile=file;
+  const img=new Image(),url=URL.createObjectURL(file);
+  img.onload=()=>{
+    filterOrigCanvas=document.createElement('canvas');
+    filterOrigCanvas.width=img.naturalWidth;filterOrigCanvas.height=img.naturalHeight;
+    filterOrigCanvas.getContext('2d').drawImage(img,0,0);
+    const maxP=900,sc=Math.min(1,maxP/img.naturalWidth,maxP/img.naturalHeight);
+    const pw=Math.round(img.naturalWidth*sc),ph=Math.round(img.naturalHeight*sc);
+    const pc=document.createElement('canvas');pc.width=pw;pc.height=ph;
+    pc.getContext('2d').drawImage(img,0,0,pw,ph);
+    filterPreviewSrc=pc.getContext('2d').getImageData(0,0,pw,ph);
+    URL.revokeObjectURL(url);
+    const disp=document.getElementById('filter-preview');
+    disp.width=pw;disp.height=ph;
+    document.getElementById('dz-filters').style.display='none';
+    document.getElementById('filter-editor').style.display='block';
+    buildFilterCards();renderFilterPreview();
+  };
+  img.src=url;
+}
+
+function buildFilterCards(){
+  const grid=document.getElementById('filter-grid');grid.innerHTML='';
+  const CS=180;
+  const sc=Math.min(1,CS/filterPreviewSrc.width,CS/filterPreviewSrc.height);
+  const tw=Math.max(1,Math.round(filterPreviewSrc.width*sc)),th=Math.max(1,Math.round(filterPreviewSrc.height*sc));
+  const tmp=document.createElement('canvas');tmp.width=filterPreviewSrc.width;tmp.height=filterPreviewSrc.height;
+  tmp.getContext('2d').putImageData(filterPreviewSrc,0,0);
+  const tc=document.createElement('canvas');tc.width=tw;tc.height=th;
+  tc.getContext('2d').drawImage(tmp,0,0,tw,th);
+  const thumbSrc=tc.getContext('2d').getImageData(0,0,tw,th);
+  FILM_FILTERS.forEach((f,idx)=>{
+    const card=document.createElement('div');
+    card.className='filter-card'+(idx===activeFilterIdx?' active':'');
+    card.onclick=()=>{activeFilterIdx=idx;document.querySelectorAll('.filter-card').forEach((c,i)=>c.classList.toggle('active',i===idx));renderFilterPreview();};
+    const size=Math.min(tw,th);
+    const mc=document.createElement('canvas');mc.width=size;mc.height=size;
+    const filtered=applyFilter(thumbSrc,f,1);
+    const ftmp=renderToCanvas(filtered,f,idx);
+    mc.getContext('2d').drawImage(ftmp,(tw-size)/2,(th-size)/2,size,size,0,0,size,size);
+    const nm=document.createElement('div');nm.className='filter-card-name';nm.textContent=f.name;
+    card.appendChild(mc);card.appendChild(nm);grid.appendChild(card);
+  });
+}
+
+function renderFilterPreview(){
+  if(!filterPreviewSrc)return;
+  const f=FILM_FILTERS[activeFilterIdx];
+  const filtered=applyFilter(filterPreviewSrc,f,filterIntensity);
+  const rendered=renderToCanvas(filtered,f,activeFilterIdx);
+  const disp=document.getElementById('filter-preview');
+  disp.getContext('2d').drawImage(rendered,0,0,disp.width,disp.height);
+}
+
+function onFilterIntensity(val){
+  document.getElementById('fiv').textContent=val+'%';
+  filterIntensity=parseInt(val)/100;renderFilterPreview();
+}
+
+async function downloadFiltered(){
+  if(!filterOrigCanvas)return;
+  const btn=document.getElementById('btn-filter-dl');
+  btn.disabled=true;btn.textContent='Обрабатываем...';
+  await new Promise(r=>setTimeout(r,0));
+  const origData=filterOrigCanvas.getContext('2d').getImageData(0,0,filterOrigCanvas.width,filterOrigCanvas.height);
+  const filtered=applyFilter(origData,FILM_FILTERS[activeFilterIdx],filterIntensity);
+  const out=renderToCanvas(filtered,FILM_FILTERS[activeFilterIdx],activeFilterIdx);
+  const blob=await new Promise(r=>out.toBlob(r,'image/jpeg',0.93));
+  dlBlob(blob,filterFile.name.replace(/\.[^.]+$/,'')+'_'+FILM_FILTERS[activeFilterIdx].name.replace(/\s+/g,'_')+'.jpg');
+  btn.disabled=false;btn.textContent='Скачать с фильтром';
+}
+
+function resetFilters(){
+  filterFile=null;filterOrigCanvas=null;filterPreviewSrc=null;activeFilterIdx=0;filterIntensity=1;
+  document.getElementById('filter-editor').style.display='none';
+  document.getElementById('dz-filters').style.display='block';
+  document.getElementById('fi-filters').value='';
+  document.getElementById('fintensity').value=100;
+  document.getElementById('fiv').textContent='100%';
+  document.getElementById('filter-grid').innerHTML='';
+}
+
+// --- ИНИЦИАЛИЗАЦИЯ ФИЛЬТРОВ DROP ZONE ---
+const dzFilters=document.getElementById('dz-filters');
+const fiFilters=document.getElementById('fi-filters');
+dzFilters.onclick=()=>fiFilters.click();
+fiFilters.onchange=e=>{if(e.target.files[0])loadFilterImage(e.target.files[0]);e.target.value='';};
+dzFilters.addEventListener('dragover',e=>{e.preventDefault();dzFilters.classList.add('drag-over');});
+dzFilters.addEventListener('dragleave',()=>dzFilters.classList.remove('drag-over'));
+dzFilters.addEventListener('drop',e=>{e.preventDefault();dzFilters.classList.remove('drag-over');if(e.dataTransfer.files[0])loadFilterImage(e.dataTransfer.files[0]);});
 
 function c255(v){return v<0?0:v>255?255:Math.round(v);}
 function gaussRand(){let u=0,v=0;while(!u)u=Math.random();while(!v)v=Math.random();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);}
